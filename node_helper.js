@@ -17,6 +17,7 @@ const Log = require('../../js/logger.js');
 var NodeHelper = require('node_helper');
 const jo = require('jpeg-autorotate');
 const axios = require('axios');
+const convert = require('heic-convert');
 const LOG_PREFIX = 'MMM-ImmichSlideShow :: node_helper :: ';
 
 // the main module helper create
@@ -72,6 +73,7 @@ module.exports = NodeHelper.create({
   },
 
   sortImageList: function (imageList, sortBy, sortDescending) {
+    Log.info(LOG_PREFIX + 'imageList is Array?', Array.isArray(imageList), imageList);
     let sortedList = imageList;
     switch (sortBy) {
       case 'created':
@@ -165,12 +167,12 @@ module.exports = NodeHelper.create({
     if (this.imageList.length > 0) {
       this.imageList = this.imageList.filter(element => {
         // Log.info('Filtering element', element);
-        return checkValidImageFileExtension(element.originalPath);
+        return this.checkValidImageFileExtension(element.originalPath);
       });
     }
 
     // Now sort them according to config
-    this.imageList = sortImageList(this.ImageList, config.sortImagesBy, config.sortImagesDescending);
+    this.imageList = this.sortImageList(this.imageList, config.sortImagesBy, config.sortImagesDescending);
 
     // Log.info(LOG_PREFIX + this.imageList.length + ' files found');
     if (this.index < 0 || this.index > this.imageList.length) {
@@ -225,14 +227,28 @@ module.exports = NodeHelper.create({
 
     this.http.get(`/asset/file/${image.id}`, {
       responseType: 'arraybuffer'
-    }).then(response => {
+    }).then(async(response) => {
+      try {
+        const imageBuffer = Buffer.from(response.data, 'binary');
+        if (image.originalPath.toLowerCase().endsWith('heic')) {
+          Log.info(LOG_PREFIX + ' converting HEIC to JPG..');
+          // convert the main image to jpeg
+          returnPayload.data = (await convert({
+            buffer: imageBuffer, // the HEIC file buffer
+            format: 'JPEG',      // output format
+            quality: 1           // the jpeg compression quality, between 0 and 1
+          })).toString('base64');
+        } else {
+          returnPayload.data = imageBuffer.toString('base64');
+        }
 
-      returnPayload.data = Buffer.from(response.data, 'binary').toString('base64');
-
-      self.sendSocketNotification(
-        'IMMICHSLIDESHOW_DISPLAY_IMAGE',
-        returnPayload
-      );
+        self.sendSocketNotification(
+          'IMMICHSLIDESHOW_DISPLAY_IMAGE',
+          returnPayload
+        );
+      } catch (e) {
+        Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image', e);
+      }
     });
     
   },

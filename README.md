@@ -156,7 +156,7 @@ The following properties can be configured:
 		</tr>
         <tr>
 			<td><code>validImageFileExtensions</code></td>
-			<td>String value, a list of image file extensions, separated by commas, that should be included. Files found without one of the extensions will be ignored.<br>
+			<td>String value, a list of image file extensions, separated by commas, that should be included. Files found without one of the extensions will be ignored.  Note that you can include HEIC as a valid extension but beware that the conversion time may be noticeable based on your server and its horsepower.<br>
 				<br><b>Example:</b> <code>'png,jpg'</code>
 				<br><b>Default value:</b> <code>'bmp,jpg,jpeg,gif,png'</code>
 				<br>This value is <b>OPTIONAL</b>
