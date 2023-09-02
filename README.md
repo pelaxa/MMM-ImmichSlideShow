@@ -24,7 +24,7 @@ Use Git to download. Make sure Git is installed on your system. In the command l
 
 Or
 
-Download the zip file https://github.com/pelaxa/MMM-ImmichSlideShow/archive/master.zip. Unzip contents into the modules directory of your Magic Mirror install. Rename the 'MMM-ImmichSlideShow-master' folder to 'MMM-ImmichSlideShow'.
+Download the zip file https://github.com/pelaxa/MMM-ImmichSlideShow/archive/main.zip. Unzip contents into the modules directory of your Magic Mirror install. Rename the 'MMM-ImmichSlideShow-main' folder to 'MMM-ImmichSlideShow'.
 
 Once downloaded, install dependencies:
 
