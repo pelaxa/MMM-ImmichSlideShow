@@ -1,0 +1,265 @@
+.MMM-ImmichSlideShow .images,
+.MMM-ImmichSlideShow .image,
+.MMM-ImmichSlideShow .transition,
+.MMM-ImmichSlideShow .gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+.MMM-ImmichSlideShow .image {
+  background-repeat: no-repeat;
+  animation-timing-function: linear;
+  animation-direction: alternate;
+  animation-iteration-count: infinite;
+}
+.MMM-ImmichSlideShow .transition {
+  animation-timing-function: ease-out;
+}
+
+@keyframes opacity {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromRight {
+  0% {
+    left: 100%;
+  }
+  100% {
+    left: 0%;
+  }
+}
+
+@keyframes slideFromLeft {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 0%;
+  }
+}
+
+@keyframes slideFromTop {
+  0% {
+    top: -100%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
+@keyframes slideFromBottom {
+  0% {
+    top: 100%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
+@keyframes slideFromTopLeft {
+  0% {
+    top: 100%;
+    left: -100%;
+  }
+  100% {
+    top: 0%;
+    left: 0%;
+  }
+}
+
+@keyframes slideFromTopRight {
+  0% {
+    top: 100%;
+    left: -100%;
+  }
+  100% {
+    top: 0%;
+    left: 0%;
+  }
+}
+
+@keyframes slideFromBottomLeft {
+  0% {
+    top: -100%;
+    left: -100%;
+  }
+  100% {
+    top: 0%;
+    left: 0%;
+  }
+}
+
+@keyframes slideFromBottomRight {
+  0% {
+    top: -100%;
+    left: -100%;
+  }
+  100% {
+    top: 0%;
+    left: 0%;
+  }
+}
+
+@keyframes flipX {
+  0% {
+    transform: rotateY(90deg);
+  }
+  100% {
+    transform: rotateY(0deg);
+  }
+}
+
+@keyframes flipY {
+  0% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+.MMM-ImmichSlideShow .info {
+  display: inline-block;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.3);
+  font-family: 'Roboto Condensed', sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 25px;
+  position: absolute;
+}
+
+@keyframes move {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.MMM-ImmichSlideShow .progress {
+  position: absolute;
+  bottom: 0px;
+  height: 2px;
+  width: 100%;
+}
+
+.MMM-ImmichSlideShow .progress-inner {
+  height: 100%;
+  background-color: white;
+}
+
+.MMM-ImmichSlideShow .infoDivHeader {
+  font-size: 15px;
+  font-family: 'Roboto Condensed', Arial, Helvetica, sans-serif;
+  font-weight: 400;
+  line-height: 15px;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+  color: #CCC;
+}
+
+.MMM-ImmichSlideShow .bottomLeft {
+  bottom: 0pt;
+  left: 0pt;
+  border-width: 1pt 1pt 0 0;
+  border-top-right-radius: 20pt;
+}
+
+.MMM-ImmichSlideShow .bottomRight {
+  bottom: 0pt;
+  right: 0pt;
+  border-width: 1pt 0 0 1pt;
+  border-top-left-radius: 20pt;
+}
+
+.MMM-ImmichSlideShow .topRight {
+  top: 0pt;
+  right: 0pt;
+  border-width: 0 0 1pt 1pt;
+  border-bottom-left-radius: 20pt;
+}
+
+.MMM-ImmichSlideShow .topLeft {
+  top: 0pt;
+  left: 0pt;
+  border-width: 0 1pt 1pt 0;
+  border-bottom-right-radius: 20pt;
+}
+
+.MMM-ImmichSlideShow .slideH {
+  background-size: cover;
+  background-position: left;
+  animation-name: slideH;
+}
+
+.MMM-ImmichSlideShow .slideV {
+  background-size: cover;
+  background-position: top;
+  animation-name: slideV;
+}
+
+.MMM-ImmichSlideShow .slideHInv {
+  background-size: cover;
+  background-position: right;
+  animation-name: slideHInv;
+}
+
+.MMM-ImmichSlideShow .slideVInv {
+  background-size: cover;
+  background-position: bottom;
+  animation-name: slideVInv;
+}
+.MMM-ImmichSlideShow .zoomIn {
+  animation-name: zoomIn;
+  transform: scale(1);
+}
+
+.MMM-ImmichSlideShow .zoomOut {
+  animation-name: zoomOut;
+  transform: scale(1.1);
+}
+
+@keyframes slideH {
+  to {
+    background-position: right;
+  }
+}
+
+@keyframes slideV {
+  to {
+    background-position: bottom;
+  }
+}
+
+@keyframes slideHInv {
+  to {
+    background-position: left;
+  }
+}
+
+@keyframes slideVInv {
+  to {
+    background-position: top;
+  }
+}
+
+@keyframes zoomIn {
+  to {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes zoomOut {
+  to {
+    transform: scale(1);
+  }
+}

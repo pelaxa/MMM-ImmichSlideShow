@@ -1,0 +1,11 @@
+{
+  "name": "mmm-immichslideshow",
+  "version": "0.0.1",
+  "description": "",
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "jpeg-autorotate": "^8.0.1",
+    "axios": "1.4.0"
+  }
+}
