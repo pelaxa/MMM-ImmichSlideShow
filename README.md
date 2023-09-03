@@ -126,7 +126,7 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>apiKey</code></td>
-			<td>The API key to use when accessing the Immich server.  Without this all the calls will fail. See the Creating an API key section.<br>
+			<td>The API key to use when accessing the Immich server.  Without this all the calls will fail. See the Creating an API Key section.<br>
 				<br><b>Example:</b> <code>MyAPiKey</code>
 				<br>This value is <b>OPTIONAL</b>
 			</td>
@@ -287,3 +287,14 @@ The following properties can be configured:
 		</tr>
     </tbody>
 </table>
+
+
+## Creating an API Key
+
+To get an API Key:
+1. Login to your Immich instance
+2. Click on your username in the top right cornder
+3. Select `Account Settings`.
+4. Expand the `API Keys` section.
+5. Click `New API Key` to create a new API.
+6. Paste the API Key into the module configuration for Magic Mirror.
