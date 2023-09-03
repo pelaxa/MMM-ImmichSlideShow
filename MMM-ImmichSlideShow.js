@@ -159,7 +159,6 @@ Module.register('MMM-ImmichSlideShow', {
 
   getScripts: function () {
     return [
-      'modules/' + this.name + '/node_modules/exif-js/exif.js',
       'moment.js'
     ];
   },
