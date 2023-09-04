@@ -35,7 +35,7 @@ Module.register('MMM-ImmichSlideShow', {
     validImageFileExtensions: 'bmp,jpg,jpeg,gif,png',
     // show a panel containing information about the image currently displayed.
     showImageInfo: false,
-    // a comma separated list of values to display: name, date, since, geo (TODO)
+    // a comma separated list of values to display: name, date, since, geo
     imageInfo: ['date', 'since'],
     // location of the info div
     imageInfoLocation: 'bottomRight', // Other possibilities are: bottomLeft, topLeft, topRight
@@ -523,6 +523,19 @@ Module.register('MMM-ImmichSlideShow', {
             imageName = imageName.substring(0, imageName.lastIndexOf('.'));
           }
           imageProps.push(imageName);
+          break;
+        case 'geo': // default is name
+          let geoLocation = imageinfo.exifInfo.city ?? '';
+          geoLocation += imageinfo.exifInfo.state ? `, ${imageinfo.exifInfo.state}` : '';
+          geoLocation += imageinfo.exifInfo.country ? `, ${imageinfo.exifInfo.country}` : '';
+          // In case some values are null and our geo starts with comma, then strip it.
+          if (geoLocation.startsWith(',')) {
+            geoLocation = geoLocation.substring(2);
+          }
+          // If we end up with a string that has some length, then add it to image info.
+          if (geoLocation.length > 0) {
+            imageProps.push(geoLocation);
+          }
           break;
         default:
           Log.warn(
