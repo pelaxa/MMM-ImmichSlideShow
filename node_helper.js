@@ -73,7 +73,7 @@ module.exports = NodeHelper.create({
   },
 
   sortImageList: function (imageList, sortBy, sortDescending) {
-    Log.info(LOG_PREFIX + 'imageList is Array?', Array.isArray(imageList), imageList);
+    Log.info(LOG_PREFIX + 'imageList is Array?', Array.isArray(imageList));
     let sortedList = imageList;
     switch (sortBy) {
       case 'created':
@@ -175,7 +175,7 @@ module.exports = NodeHelper.create({
     this.imageList = this.sortImageList(this.imageList, config.sortImagesBy, config.sortImagesDescending);
 
     // Log.info(LOG_PREFIX + this.imageList.length + ' files found');
-    if (this.index < 0 || this.index > this.imageList.length) {
+    if (this.index < 0 || this.index >= this.imageList.length) {
       //Set this index back to zero only if necessary
       this.index = 0;
     }
@@ -197,7 +197,7 @@ module.exports = NodeHelper.create({
   },
 
   getNextImage: function () {
-    Log.info(LOG_PREFIX + 'getNextImage', Date.now() - this.pictureDate, this.imageList.length, this.index);
+    Log.info(LOG_PREFIX + 'Current Image: ', this.index, ' of ', this.imageList.length, '. Getting next image...');
     if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
       // if there are no images or all the images have been displayed or it is the next day, try loading the images again
       this.gatherImageList(this.config);
