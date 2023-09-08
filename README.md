@@ -46,6 +46,7 @@ modules: [
     config: {
 	  apiKey: '<Your API key>',
 	  immichUrl: 'https://<Your Immich hostname/IP>:<port>',
+	  mode: 'memory',
       numDaysToInclude: 7,
       transitionImages: true
     }
@@ -128,14 +129,35 @@ The following properties can be configured:
 			<td><code>apiKey</code></td>
 			<td>The API key to use when accessing the Immich server.  Without this all the calls will fail. See the Creating an API Key section.<br>
 				<br><b>Example:</b> <code>MyAPiKey</code>
-				<br>This value is <b>OPTIONAL</b>
+				<br>This value is <b>REQUIRED</b>
+			</td>
+		</tr>
+		<tr>
+			<td><code>mode</code></td>
+			<td>The mode of operation for the module.  Valid options are 'memory' or 'album' and depending on which is chosen, additional settings are required.<br>
+				<br><b>Example:</b> <code>memory</code> for memory mode
+				<br>This value is <b>REQUIRED</b>
 			</td>
 		</tr>
 		<tr>
 			<td><code>numDaysToInclude</code></td>
 			<td>The number of days to go back and collect images for.  Use this to make sure you always have images to display since there could be days where no pictures were taken over the years.<br>
 				<br><b>Example:</b> <code>7</code> for 7 days
-				<br>This value is <b>OPTIONAL</b>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>memory</i>
+			</td>
+		</tr>
+		<tr>
+			<td><code>albumId</code></td>
+			<td>The id of the album to show pictures from. Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
+				<br><b>Example:</b> <code>1b57d1dc-57d6-4cd4-bc1d-f8ebf759ba16</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumName</i> is not provided.
+			</td>
+		</tr>
+		<tr>
+			<td><code>albumName</code></td>
+			<td>The id of the album to show pictures from.  This name is case sensitive and should match the album name in Immich exactly.  Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
+				<br><b>Example:</b> <code>Family Trip 2023</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumId</i> is not provided.
 			</td>
 		</tr>
 		<tr>

@@ -138,33 +138,85 @@ module.exports = NodeHelper.create({
    
     // create an empty main image list
     this.imageList = [];
-    // Loop through the past 2 weeks and get the memory lanes
-    // TODO: Do we keep looping until we reach a max # of photos?
-    //       how do we determine max photos? is it fixed or determined based on config settings?
-    
-     // Get today's date at midnight
+
+    // we default albumId to the config value and override below if albumName is provided
+    let albumId = config.albumId;
+
+    // Get today's date at midnight
     let today = (new Date());
-    today.setHours(0);
-    today.setMinutes(0);
-    today.setSeconds(0);
-    today.setMilliseconds(0);
     this.pictureDate = new Date(today.getTime());
-    Log.info(LOG_PREFIX + 'numDaysToInclude: ', config.numDaysToInclude);
-    for (var i=0; i < config.numDaysToInclude; i++) {
-      today.setDate(today.getDate()-1);
-      Log.info(LOG_PREFIX + 'fetching images for: ', today.toISOString());
-      response = await this.http.get('/asset/memory-lane', {params: {
-        timestamp: today.toISOString()
-      }, responseType: 'json'});
-      // Log.info(LOG_PREFIX + 'response', today.toISOString(), response.data.length);
-      response.data.forEach(memory => {
-        this.imageList = memory.assets.concat(this.imageList);
-        // Log.info(LOG_PREFIX + 'imageList', today.toISOString(), this.imageList.length);
-      });
+
+    // First check to see what mode we are operating in
+    if (config.mode === 'album') {
+      // If we have albumName but no albumId, then get the albumId
+      if (config.albumName && !config.albumId) {
+        response = await this.http.get('/album', {responseType: 'json'});
+        if (response.status === 200) {
+          // Loop through the albums to find the right now
+          for (let i=0; i < response.data.length; i++) {
+            const album = response.data[i];
+            Log.info(LOG_PREFIX + `comparing ${album.albumName} to ${config.albumName}`);
+            if (album.albumName === config.albumName) {
+              Log.info(LOG_PREFIX + 'match found');
+              albumId = album.id;
+              break;
+            }
+          }
+
+          if (!albumId) {
+            Log.error(LOG_PREFIX + `could not find an album with the provided name (${config.albumName}).  Note that album name is case sensitive`);
+          }
+        } else {
+          Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+        }
+      }
+      // Only proceed if we have an albumId
+      if (albumId) {
+        Log.info(LOG_PREFIX + 'fetching pictures from album', albumId);
+        // Get the pictures from the album
+        response = await this.http.get(`/album/${albumId}`, {responseType: 'json'});
+        if (response.status === 200) {
+          this.imageList = [...response.data.assets];
+        } else {
+          Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+        }
+      } else {
+        Log.error(LOG_PREFIX + 'could not find the specified album in Immich.  Please check your configuration again');
+      }
+    } else {
+      // Assume we are in memory mode
+        
+      // Loop through the past 2 weeks and get the memory lanes
+      // TODO: Do we keep looping until we reach a max # of photos?
+      //       how do we determine max photos? is it fixed or determined based on config settings?
+      
+      today.setHours(0);
+      today.setMinutes(0);
+      today.setSeconds(0);
+      today.setMilliseconds(0);
+      Log.info(LOG_PREFIX + 'numDaysToInclude: ', config.numDaysToInclude);
+      for (var i=0; i < config.numDaysToInclude; i++) {
+        today.setDate(today.getDate()-1);
+        Log.info(LOG_PREFIX + 'fetching images for: ', today.toISOString());
+        response = await this.http.get('/asset/memory-lane', {params: {
+          timestamp: today.toISOString()
+        }, responseType: 'json'});
+        // Log.info(LOG_PREFIX + 'response', today.toISOString(), response.data.length);
+        if (response.status === 200) {
+          response.data.forEach(memory => {
+            this.imageList = memory.assets.concat(this.imageList);
+            // Log.info(LOG_PREFIX + 'imageList', today.toISOString(), this.imageList.length);
+          });
+        } else {
+          Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+        }
+      }
+
     }
 
     // Now loop through and remove any movies
     if (this.imageList.length > 0) {
+      Log.info('Filtering image list for valid image extensions...');
       this.imageList = this.imageList.filter(element => {
         // Log.info('Filtering element', element);
         return this.checkValidImageFileExtension(element.originalPath);
@@ -174,7 +226,7 @@ module.exports = NodeHelper.create({
     // Now sort them according to config
     this.imageList = this.sortImageList(this.imageList, config.sortImagesBy, config.sortImagesDescending);
 
-    // Log.info(LOG_PREFIX + this.imageList.length + ' files found');
+    Log.info(LOG_PREFIX + this.imageList.length + ' images found');
     if (this.index < 0 || this.index >= this.imageList.length) {
       //Set this index back to zero only if necessary
       this.index = 0;
@@ -198,12 +250,15 @@ module.exports = NodeHelper.create({
 
   getNextImage: function () {
     Log.info(LOG_PREFIX + 'Current Image: ', this.index, ' of ', this.imageList.length, '. Getting next image...');
+    // Log.info(LOG_PREFIX + 'picture date',  this.pictureDate , ' now',Date.now(),  Date.now() - this.pictureDate > 86400000);
     if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
+      Log.info(LOG_PREFIX + 'image list is empty or index out of range!  fetching new image list...');
       // if there are no images or all the images have been displayed or it is the next day, try loading the images again
       this.gatherImageList(this.config);
     }
-    //
+    // Log.info(LOG_PREFIX + 'image list', this.imageList.length, this.imageList);
     if (!this.imageList.length) {
+      Log.info(LOG_PREFIX + 'image list is empty!  setting timeout for next image...');
       // still no images, search again after 5 mins
       setTimeout(() => {
         this.getNextImage(config);

@@ -12,6 +12,8 @@
  * MIT Licensed.
  */
 const LOG_PREFIX = 'MMM-ImmichSlideShow :: module :: ';
+const MODE_MEMORY = 'memory';
+const MODE_ALBUM = 'album';
 
 Module.register('MMM-ImmichSlideShow', {
   // Min version of MM2 required
@@ -23,8 +25,16 @@ Module.register('MMM-ImmichSlideShow', {
     apiKey: 'provide your API KEY',
     // Base Immich URL.  /api will be appended to this URL to make API calls.
     immichUrl: 'provide your base Immich URL',
+    // Mode of operation: 
+    //    memory = show recent photos.  requires numDaystoInclude
+    //    album = show picture from album.  requires albumId/albumName
+    mode: MODE_MEMORY,
     // Number of days to include images for, including today
     numDaysToInclude: 7,
+    // The ID of the album to display
+    albumId: null,
+    // The Name of the album to display
+    albumName: null,
     // the speed at which to switch between images, in milliseconds
     slideshowSpeed: 15 * 1000,
     // how to sort images: name, random, created, modified, none
@@ -94,8 +104,44 @@ Module.register('MMM-ImmichSlideShow', {
     // set no error
     // this.errorMessage = null;
 
+    // Log.info(LOG_PREFIX + 'current config', this.config);
+
+    //validate immich properties
+    if (this.config.mode && this.config.mode.trim().toLowerCase() === MODE_MEMORY) {
+      this.config.mode = MODE_MEMORY
+      // Make sure we have numDaysToInclude
+      if (!this.config.numDaysToInclude || isNaN(this.config.numDaysToInclude)) {
+        Log.warn(
+          LOG_PREFIX + 'memory mode set, but numDaysToInclude does not have a valid value'
+        );
+      }
+    } else if (this.config.mode && this.config.mode.trim().toLowerCase() === MODE_ALBUM) {
+      this.config.mode = MODE_ALBUM
+      // Make sure we have album name or album id
+      if ((!this.config.albumId || this.config.albumId.length === 0) && (!this.config.albumName || this.config.albumName.length === 0)) {
+        Log.warn(
+          LOG_PREFIX + 'album mode set, but albumId or albumName do not have a valid value'
+        );
+      } else if (this.config.albumId && this.config.albumName) {
+        Log.warn(
+          LOG_PREFIX + 'album mode set, but albumId or albumName do not have a valid value'
+        );
+        // This is a double check to make sure we only present one of these properties to
+        // node_helper
+        if (this.config.albumId) {
+          this.config.albumName = null;
+        } else {
+          this.config.albumId = null;
+        }
+      }
+    } else {
+      Log.warn(
+        LOG_PREFIX + 'memory mode not set to valid value, assuming memory mode...'
+      );
+    }
+
     //validate imageinfo property.  This will make sure we have at least 1 valid value
-    const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bimagecount\b|\bgeo\b/gi;
+    const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bgeo\b/gi;
     if (
       this.config.showImageInfo &&
       Array.isArray(this.config.imageInfo)
