@@ -248,8 +248,8 @@ module.exports = NodeHelper.create({
     }
   },
 
-  getNextImage: function () {
-    Log.info(LOG_PREFIX + 'Current Image: ', this.index, ' of ', this.imageList.length, '. Getting next image...');
+  getNextImage: function (showCurrent = false) {
+    Log.info(LOG_PREFIX + 'Current Image: ', this.index+1, ' of ', this.imageList.length, '. Getting next image...');
     // Log.info(LOG_PREFIX + 'picture date',  this.pictureDate , ' now',Date.now(),  Date.now() - this.pictureDate > 86400000);
     if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
       Log.info(LOG_PREFIX + 'image list is empty or index out of range!  fetching new image list...');
@@ -266,11 +266,22 @@ module.exports = NodeHelper.create({
       return;
     }
 
-    var image = this.imageList[this.index++];
+    var image = this.imageList[this.index];
+    if (showCurrent) {
+      // Just send the current image
+      self.sendSocketNotification(
+        'IMMICHSLIDESHOW_DISPLAY_IMAGE',
+        this.lastImageLoaded
+      );
+      return;
+    } else {
+      // Otherwise increment our counter
+      this.index++;
+    }
     Log.info(LOG_PREFIX + 'reading image "' + image.originalPath + '"');
     self = this;
     
-    const returnPayload = {
+    this.lastImageLoaded = {
       identifier: self.config.identifier,
       path: image.originalPath,
       exifInfo: image.exifInfo,
@@ -288,18 +299,18 @@ module.exports = NodeHelper.create({
         if (image.originalPath.toLowerCase().endsWith('heic')) {
           Log.info(LOG_PREFIX + ' converting HEIC to JPG..');
           // convert the main image to jpeg
-          returnPayload.data = (await convert({
+          this.lastImageLoaded.data = (await convert({
             buffer: imageBuffer, // the HEIC file buffer
             format: 'JPEG',      // output format
             quality: 1           // the jpeg compression quality, between 0 and 1
           })).toString('base64');
         } else {
-          returnPayload.data = imageBuffer.toString('base64');
+          this.lastImageLoaded.data = imageBuffer.toString('base64');
         }
 
         self.sendSocketNotification(
           'IMMICHSLIDESHOW_DISPLAY_IMAGE',
-          returnPayload
+          this.lastImageLoaded
         );
       } catch (e) {
         Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image', e);
@@ -315,7 +326,8 @@ module.exports = NodeHelper.create({
 
     // Case of first image, go to end of array.
     if (this.index < 0) {
-      this.index = 0;
+      Log.info('Reaching begining of pictures! looping around...')
+      this.index = this.imageList.length - this.index;
     }
     this.getNextImage();
   },
@@ -338,10 +350,10 @@ module.exports = NodeHelper.create({
   // },
 
   resume: function() {
-    Log.info(LOG_PREFIX + 'Resuming...', this.config.slideshowSpeed);
-    this.suspend();
-    this.getNextImage();
+    Log.info(LOG_PREFIX + 'Resume called!');
     if (!this.timer) {
+      Log.info(LOG_PREFIX + 'Resuming...', this.config.slideshowSpeed);
+      this.getNextImage();
       this.timer = setInterval(() => {
         this.getNextImage();
       }, this.config.slideshowSpeed);
@@ -358,23 +370,31 @@ module.exports = NodeHelper.create({
 
   // subclass socketNotificationReceived, received notification from module
   socketNotificationReceived: function (notification, payload) {
+    Log.info(LOG_PREFIX + 'socketNotificationReceived:', notification, payload);
     if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
-      const config = payload;
+      // Log.info(LOG_PREFIX + 'Current config loaded?', !this.config, this.config);
+      if (!this.config) { // Only initialize if we have not initialized already
+        // Log.info(LOG_PREFIX + 'Initializing config...');
+        this.suspend();
+        const config = payload;
 
-      // Create set of valid image extensions.
-      const validExtensionsList = config.validImageFileExtensions
-        .toLowerCase()
-        .split(',');
-      this.validImageFileExtensions = new Set(validExtensionsList);
+        // Create set of valid image extensions.
+        const validExtensionsList = config.validImageFileExtensions
+          .toLowerCase()
+          .split(',');
+        this.validImageFileExtensions = new Set(validExtensionsList);
 
-      // Get the image list in a non-blocking way since large # of images would cause
-      // the MagicMirror startup banner to get stuck sometimes.
-      this.config = config;
-      setTimeout(() => {
-        this.gatherImageList(config, true);
-      }, 200);
+        // Get the image list in a non-blocking way since large # of images would cause
+        // the MagicMirror startup banner to get stuck sometimes.
+        this.config = config;
+        setTimeout(() => {
+          this.gatherImageList(config, true);
+        }, 200);
+      } else {
+        // Show the current image for now, and then the new client will fall in sync with existing clients
+        this.getNextImage(true);
+      }
     } else if (notification === 'IMMICHSLIDESHOW_PLAY_VIDEO') {
-      Log.info(LOG_PREFIX + 'mw got IMMICHSLIDESHOW_PLAY_VIDEO');
       Log.info(
         LOG_PREFIX + 'cmd line:' + 'omxplayer --win 0,0,1920,1080 --alpha 180 ' + payload[0]
       );
@@ -386,10 +406,8 @@ module.exports = NodeHelper.create({
         }
       );
     } else if (notification === 'IMMICHSLIDESHOW_NEXT_IMAGE') {
-      Log.info(LOG_PREFIX + 'IMMICHSLIDESHOW_NEXT_IMAGE');
-      // this.getNextImage();
+      this.getNextImage();
     } else if (notification === 'IMMICHSLIDESHOW_PREV_IMAGE') {
-      Log.info(LOG_PREFIX + 'IMMICHSLIDESHOW_PREV_IMAGE');
       this.getPrevImage();
     } else if (notification === 'IMMICHSLIDESHOW_RESUME') {
       // Resume
@@ -397,9 +415,10 @@ module.exports = NodeHelper.create({
     } else if (notification === 'IMMICHSLIDESHOW_SUSPEND') {
       // Suspend
       this.suspend();
-    } else {
-      Log.info(LOG_PREFIX + 'Received Unexpected Notification', notification);
+    } else if (!notification.startsWith('IMMICHSLIDESHOW')) {
+      Log.info(LOG_PREFIX + 'Notification is unexpected and not handled!');
     }
+    Log.info(LOG_PREFIX + 'Notification Processed!');
   }
 });
 

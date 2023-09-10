@@ -94,6 +94,9 @@ Module.register('MMM-ImmichSlideShow', {
 
   // load function
   start: function () {
+    Log.info(
+      LOG_PREFIX + 'starting...'
+    );
     // add identifier to the config
     this.config.identifier = this.identifier;
     // ensure file extensions are lower case
@@ -274,13 +277,13 @@ Module.register('MMM-ImmichSlideShow', {
       if (payload.identifier === this.identifier) {
         this.displayImage(payload);
       }
-    } else if (notification === 'IMMICHSLIDESHOW_FILELIST') {
-      //bubble up filelist notifications
-      this.sendSocketNotification('IMMICHSLIDESHOW_FILELIST', payload);
-    } else if (notification === 'IMMICHSLIDESHOW_UPDATE_IMAGE_LIST') {
-      this.imageIndex = -1;
-      this.updateImageList();
-      this.updateImage();
+    // } else if (notification === 'IMMICHSLIDESHOW_FILELIST') {
+    //   // bubble up filelist notifications
+    //   this.sendSocketNotification('IMMICHSLIDESHOW_FILELIST', payload);
+    // } else if (notification === 'IMMICHSLIDESHOW_UPDATE_IMAGE_LIST') {
+    //   this.imageIndex = -1;
+    //   this.updateImageList();
+    //   this.updateImage();
     } else if (notification === 'IMMICHSLIDESHOW_IMAGE_UPDATE') {
       Log.info(LOG_PREFIX + 'Changing Background');
       this.suspend();
@@ -331,9 +334,9 @@ Module.register('MMM-ImmichSlideShow', {
       );
     } else {
       // create an empty image list
-      this.imageList = [];
+      // this.imageList = [];
       // set beginning image index to 0, as it will auto increment on start
-      this.imageIndex = 0;
+      // this.imageIndex = 0;
       this.updateImageList();
     }
 
@@ -465,13 +468,7 @@ Module.register('MMM-ImmichSlideShow', {
             dateTime = 'Invalid date';
           }
         }
-        // TODO: allow for location lookup via openMaps
-        // let lat = EXIF.getTag(this, "GPSLatitude");
-        // let lon = EXIF.getTag(this, "GPSLongitude");
-        // // Only display the location if we have both longitute and lattitude
-        // if (lat && lon) {
-        //   // Get small map of location
-        // }
+        // Update image info
         this.updateImageInfo(imageinfo, dateTime);
       }
 
@@ -492,29 +489,29 @@ Module.register('MMM-ImmichSlideShow', {
 
   updateImage: function (backToPreviousImage = false, imageToDisplay = null) {
     Log.info(LOG_PREFIX + 'updateImage ::', backToPreviousImage, ', ', imageToDisplay);
-    if (imageToDisplay) {
-      this.displayImage({
-        path: imageToDisplay,
-        data: imageToDisplay,
-        index: 1,
-        total: 1
-      });
-      return;
-    }
+    // if (imageToDisplay) {
+    //   this.displayImage({
+    //     path: imageToDisplay,
+    //     data: imageToDisplay,
+    //     index: 1,
+    //     total: 1
+    //   });
+    //   return;
+    // }
 
-    if (this.imageList.length > 0) {
-      this.imageIndex = this.imageIndex + 1;
+    // if (this.imageList.length > 0) {
+    //   this.imageIndex = this.imageIndex + 1;
 
-      imageToDisplay = this.imageList.splice(this.imageIndex, 1);
-      Log.info(LOG_PREFIX + 'imageToDisplay >> ', imageToDisplay);
-      this.displayImage({
-        path: imageToDisplay[0],
-        data: imageToDisplay[0],
-        index: 1,
-        total: 1
-      });
-      return;
-    }
+    //   imageToDisplay = this.imageList.splice(this.imageIndex, 1);
+    //   Log.info(LOG_PREFIX + 'imageToDisplay >> ', imageToDisplay);
+    //   this.displayImage({
+    //     path: imageToDisplay[0],
+    //     data: imageToDisplay[0],
+    //     index: 1,
+    //     total: 1
+    //   });
+    //   return;
+    // }
 
     if (backToPreviousImage) {
       this.sendSocketNotification('IMMICHSLIDESHOW_PREV_IMAGE');
@@ -628,7 +625,7 @@ Module.register('MMM-ImmichSlideShow', {
   },
 
   updateImageList: function () {
-    this.suspend();
+    // this.suspend();
     // Log.info(LOG_PREFIX + 'Getting Images');
     // ask helper function to get the image list
     this.sendSocketNotification(
