@@ -20,6 +20,9 @@ const axios = require('axios');
 const convert = require('heic-convert');
 const LOG_PREFIX = 'MMM-ImmichSlideShow :: node_helper :: ';
 
+const API_LEVEL_1_82 = '1.82+';
+const API_LEVEL_1 = '1.0+';
+
 // the main module helper create
 module.exports = NodeHelper.create({
   
@@ -36,6 +39,7 @@ module.exports = NodeHelper.create({
     this.config;
     this.http = null;
     this.pictureDate = 0;
+    this.apiLevel = API_LEVEL_1;
   },
 
   // shuffles an array at random and returns it
@@ -146,45 +150,74 @@ module.exports = NodeHelper.create({
     let today = (new Date());
     this.pictureDate = new Date(today.getTime());
 
+
+    //determine the server version first
+    let serverVersion = {major:1, minor:0, patch:0};
+    try{
+      Log.info(LOG_PREFIX + 'fetching server version...');
+      response = await this.http.get('/server-info/version', {params: {}, responseType: 'json'});
+      if (response.status === 200) {
+        serverVersion = response.data;
+      } else {
+        Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+      }
+    } catch(e) {
+      Log.error(LOG_PREFIX + 'Oops!  Exception while fetching server version', e.message);
+    }
+    if (serverVersion.major > 1 ||
+      (serverVersion.major === 1 && serverVersion.minor >= 82)) {
+        this.apiLevel = API_LEVEL_1_82;
+    }
+
+
     // First check to see what mode we are operating in
     if (config.mode === 'album') {
       // If we have albumName but no albumId, then get the albumId
       if (config.albumName && !config.albumId) {
-        response = await this.http.get('/album', {responseType: 'json'});
-        if (response.status === 200) {
-          // Loop through the albums to find the right now
-          for (let i=0; i < response.data.length; i++) {
-            const album = response.data[i];
-            Log.info(LOG_PREFIX + `comparing ${album.albumName} to ${config.albumName}`);
-            if (album.albumName === config.albumName) {
-              Log.info(LOG_PREFIX + 'match found');
-              albumId = album.id;
-              break;
+        try {
+          response = await this.http.get('/album', {responseType: 'json'});
+          if (response.status === 200) {
+            // Loop through the albums to find the right now
+            for (let i=0; i < response.data.length; i++) {
+              const album = response.data[i];
+              Log.info(LOG_PREFIX + `comparing ${album.albumName} to ${config.albumName}`);
+              if (album.albumName === config.albumName) {
+                Log.info(LOG_PREFIX + 'match found');
+                albumId = album.id;
+                break;
+              }
             }
-          }
 
-          if (!albumId) {
-            Log.error(LOG_PREFIX + `could not find an album with the provided name (${config.albumName}).  Note that album name is case sensitive`);
+            if (!albumId) {
+              Log.error(LOG_PREFIX + `could not find an album with the provided name (${config.albumName}).  Note that album name is case sensitive`);
+            }
+          } else {
+            Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
           }
-        } else {
-          Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+        } catch (e) {
+          Log.error(LOG_PREFIX + 'Oops!  Exception while fetching albums from Immich', e.message);
         }
       }
       // Only proceed if we have an albumId
       if (albumId) {
         Log.info(LOG_PREFIX + 'fetching pictures from album', albumId);
         // Get the pictures from the album
-        response = await this.http.get(`/album/${albumId}`, {responseType: 'json'});
-        if (response.status === 200) {
-          this.imageList = [...response.data.assets];
-        } else {
-          Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+        try {
+          response = await this.http.get(`/album/${albumId}`, {responseType: 'json'});
+          if (response.status === 200) {
+            this.imageList = [...response.data.assets];
+          } else {
+            Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+          }
+        } catch (e) {
+          Log.error(LOG_PREFIX + 'Oops!  Exception while fetching pictures from album ', e.message);
         }
       } else {
         Log.error(LOG_PREFIX + 'could not find the specified album in Immich.  Please check your configuration again');
       }
     } else {
       // Assume we are in memory mode
+
         
       // Loop through the past 2 weeks and get the memory lanes
       // TODO: Do we keep looping until we reach a max # of photos?
@@ -196,20 +229,33 @@ module.exports = NodeHelper.create({
       today.setMilliseconds(0);
       Log.info(LOG_PREFIX + 'numDaysToInclude: ', config.numDaysToInclude);
       for (var i=0; i < config.numDaysToInclude; i++) {
-        today.setDate(today.getDate()-1);
-        Log.info(LOG_PREFIX + 'fetching images for: ', today.toISOString());
-        response = await this.http.get('/asset/memory-lane', {params: {
+        // as of version 1.82, the API for memory lane has changed.
+        let mlParams = {
           timestamp: today.toISOString()
-        }, responseType: 'json'});
-        // Log.info(LOG_PREFIX + 'response', today.toISOString(), response.data.length);
-        if (response.status === 200) {
-          response.data.forEach(memory => {
-            this.imageList = memory.assets.concat(this.imageList);
-            // Log.info(LOG_PREFIX + 'imageList', today.toISOString(), this.imageList.length);
-          });
-        } else {
-          Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+        };
+        if (this.apiLevel === API_LEVEL_1_82) {
+          mlParams = {
+            day: today.getDate(),
+            month: today.getMonth()+1
+          }
         }
+        Log.info(LOG_PREFIX + 'fetching images for: ', today.toISOString());
+        try{
+          response = await this.http.get('/asset/memory-lane', {params: mlParams, responseType: 'json'});
+          // Log.info(LOG_PREFIX + 'response', today.toISOString(), response.data.length);
+          if (response.status === 200) {
+            response.data.forEach(memory => {
+              this.imageList = memory.assets.concat(this.imageList);
+              // Log.info(LOG_PREFIX + 'imageList', today.toISOString(), this.imageList.length);
+            });
+          } else {
+            Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+          }
+        } catch(e) {
+          Log.error(LOG_PREFIX + 'Oops!  Exception while fetching images from Immich', e.message);
+        }
+        // set to previous date to catch the next date
+        today.setDate(today.getDate()-1);
       }
 
     }
@@ -248,7 +294,7 @@ module.exports = NodeHelper.create({
     }
   },
 
-  getNextImage: function (showCurrent = false) {
+  getNextImage: async function (showCurrent = false) {
     Log.info(LOG_PREFIX + 'Current Image: ', this.index+1, ' of ', this.imageList.length, '. Getting next image...');
     // Log.info(LOG_PREFIX + 'picture date',  this.pictureDate , ' now',Date.now(),  Date.now() - this.pictureDate > 86400000);
     if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
@@ -284,13 +330,26 @@ module.exports = NodeHelper.create({
     this.lastImageLoaded = {
       identifier: self.config.identifier,
       path: image.originalPath,
-      exifInfo: image.exifInfo,
+      exifInfo: image.exifInfo || {},
+      people: [],
       data: null,
       imageId: image.id,
       index: self.index,
       total: self.imageList.length
     };
 
+    // If this version is higher than 1.81, then we need to fetch the exifInfo by making an extra request
+    if (this.apiLevel === API_LEVEL_1_82) {
+      try {
+        const exifResponse = await this.http.get(`/asset/assetById/${image.id}`, { responseType: 'json' });
+        if (exifResponse.status === 200) {
+          this.lastImageLoaded.exifInfo = exifResponse.data.exifInfo;
+          this.lastImageLoaded.people = exifResponse.data.people;
+        }
+      } catch (e) {
+        Log.error(LOG_PREFIX + 'Oops!  Exception while fetching image metadata', e.message);
+      }
+    }
     this.http.get(`/asset/file/${image.id}`, {
       responseType: 'arraybuffer'
     }).then(async(response) => {
@@ -313,8 +372,10 @@ module.exports = NodeHelper.create({
           this.lastImageLoaded
         );
       } catch (e) {
-        Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image', e);
+        Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image', e.message);
       }
+    }).catch(error => {
+      Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image', error.message);
     });
     
   },
@@ -370,7 +431,7 @@ module.exports = NodeHelper.create({
 
   // subclass socketNotificationReceived, received notification from module
   socketNotificationReceived: function (notification, payload) {
-    Log.info(LOG_PREFIX + 'socketNotificationReceived:', notification, payload);
+    Log.info(LOG_PREFIX + 'socketNotificationReceived:', notification); //, payload);
     if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
       // Log.info(LOG_PREFIX + 'Current config loaded?', !this.config, this.config);
       if (!this.config) { // Only initialize if we have not initialized already

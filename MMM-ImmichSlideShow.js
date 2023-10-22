@@ -144,7 +144,7 @@ Module.register('MMM-ImmichSlideShow', {
     }
 
     //validate imageinfo property.  This will make sure we have at least 1 valid value
-    const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bgeo\b/gi;
+    const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bgeo\b|\bpeople\b/gi;
     if (
       this.config.showImageInfo &&
       Array.isArray(this.config.imageInfo)
@@ -161,7 +161,7 @@ Module.register('MMM-ImmichSlideShow', {
       }
       if (setToDefault) {
         Log.warn(
-          LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value.'
+          LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
         );
         // Use name as the default
         this.config.imageInfo = ['date'];
@@ -171,7 +171,7 @@ Module.register('MMM-ImmichSlideShow', {
       !imageInfoRegex.test(this.config.imageInfo)
     ) {
       Log.warn(
-        LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value.'
+        LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
       );
       // Use name as the default
       this.config.imageInfo = ['date'];
@@ -454,18 +454,21 @@ Module.register('MMM-ImmichSlideShow', {
 
       
       if (this.config.showImageInfo) {
-        let dateTime = imageinfo.exifInfo.dateTimeOriginal;
-        // attempt to parse the date if possible
-        if (dateTime !== null) {
-          try {
-            dateTime = moment(dateTime);
-          } catch (e) {
-            Log.info(
-              LOG_PREFIX + 'Failed to parse dateTime: ' +
-              dateTime +
-              ' to format YYYY:MM:DD HH:mm:ss'
-            );
-            dateTime = 'Invalid date';
+        let dateTime = 'N/A';
+        if (imageinfo.exifInfo) {
+          dateTime = imageinfo.exifInfo.dateTimeOriginal;
+          // attempt to parse the date if possible
+          if (dateTime !== null) {
+            try {
+              dateTime = moment(dateTime);
+            } catch (e) {
+              Log.info(
+                LOG_PREFIX + 'Failed to parse dateTime: ' +
+                dateTime +
+                ' to format YYYY:MM:DD HH:mm:ss'
+              );
+              dateTime = 'Invalid date';
+            }
           }
         }
         // Update image info
@@ -546,13 +549,13 @@ Module.register('MMM-ImmichSlideShow', {
     let imageProps = [];
     this.config.imageInfo.forEach((prop, idx) => {
       switch (prop) {
-        case 'date':
+        case 'date': // show date image was taken
           if (imageDate && imageDate !== 'Invalid date') {
             imageProps.push(imageDate.format('dddd MMMM D, YYYY HH:mm'));
           }
           break;
 
-        case 'since': // default is name
+        case 'since': // show how long since the image was taken
           if (imageDate && imageDate !== 'Invalid date') {
             imageProps.push(imageDate.fromNow());
           }
@@ -567,17 +570,36 @@ Module.register('MMM-ImmichSlideShow', {
           }
           imageProps.push(imageName);
           break;
-        case 'geo': // default is name
-          let geoLocation = imageinfo.exifInfo.city ?? '';
-          geoLocation += imageinfo.exifInfo.state ? `, ${imageinfo.exifInfo.state}` : '';
-          geoLocation += imageinfo.exifInfo.country ? `, ${imageinfo.exifInfo.country}` : '';
-          // In case some values are null and our geo starts with comma, then strip it.
-          if (geoLocation.startsWith(',')) {
-            geoLocation = geoLocation.substring(2);
+        case 'geo': // show image location
+          let geoLocation = '';
+          if (imageinfo.exifInfo) {
+            geoLocation = imageinfo.exifInfo.city ?? '';
+            geoLocation += imageinfo.exifInfo.state ? `, ${imageinfo.exifInfo.state}` : '';
+            geoLocation += imageinfo.exifInfo.country ? `, ${imageinfo.exifInfo.country}` : '';
+            // In case some values are null and our geo starts with comma, then strip it.
+            if (geoLocation.startsWith(',')) {
+              geoLocation = geoLocation.substring(2);
+            }
           }
           // If we end up with a string that has some length, then add it to image info.
           if (geoLocation.length > 0) {
             imageProps.push(geoLocation);
+          }
+          break;
+        case 'people': // show people in image
+          // Only display last path component as image name if recurseSubDirectories is not set.
+          if (Array.isArray(imageinfo.people)) {
+            let peopleName = '';
+            imageinfo.people.forEach(people => {
+              if (peopleName.length > 0) {
+                peopleName += ', ';
+              }
+              peopleName += people.name || '';
+            })
+            // Remove file extension from image name.
+            if (peopleName.length > 0) {
+              imageProps.push(peopleName);
+            }
           }
           break;
         default:

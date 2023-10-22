@@ -202,7 +202,7 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>imageInfo</code></td>
-			<td>A list of image properties to display in the image info div.  Possible values are : date (EXIF date from image), name (image name), since (how long ago the picture was taken), geo (the city and country where the picture was taken if available).
+			<td>A list of image properties to display in the image info div.  Possible values are : date (EXIF date from image), name (image name), since (how long ago the picture was taken), geo (the city and country where the picture was taken if available), and people (the name of the people in the picture).
 			The values can be provided as an array of strings or as a space separated list string.<br>
 				<br><b>Example:</b> <code>'date name'</code> or <code>[ 'date', 'name']</code>
 				<br><b>Default value:</b> <code>['date', 'since']</code>
