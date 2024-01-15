@@ -313,6 +313,7 @@ module.exports = NodeHelper.create({
     }
 
     var image = this.imageList[this.index];
+    var self = this;
     if (showCurrent) {
       // Just send the current image
       self.sendSocketNotification(
@@ -325,7 +326,7 @@ module.exports = NodeHelper.create({
       this.index++;
     }
     Log.info(LOG_PREFIX + 'reading image "' + image.originalPath + '"');
-    self = this;
+
     
     this.lastImageLoaded = {
       identifier: self.config.identifier,
