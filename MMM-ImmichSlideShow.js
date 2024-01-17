@@ -36,7 +36,7 @@ Module.register('MMM-ImmichSlideShow', {
     // The Name of the album to display
     albumName: null,
     // the speed at which to switch between images, in milliseconds
-    slideshowSpeed: 15 * 1000,
+    slideshowSpeed: 10 * 60 * 1000,
     // how to sort images: name, random, created, modified, none
     sortImagesBy: 'none',
     // whether to sort in ascending (default) or descending order
@@ -637,12 +637,15 @@ Module.register('MMM-ImmichSlideShow', {
       self.updateImage();
     }
 
-    // this.timer = setInterval(function () {
-    //   // Log.info(LOG_PREFIX + 'updating from resume');
-    //   self.updateImage();
-    // }, self.config.slideshowSpeed);
+    function updateImageTimeout() {
+      self.updateImage();
+      self.timer = setTimeout(updateImageTimeout, self.config.slideshowSpeed);
+    }
+
+    updateImageTimeout();
+
     this.sendSocketNotification(
-      'IMMICHSLIDESHOW_RESUME'
+        'IMMICHSLIDESHOW_RESUME'
     );
   },
 
