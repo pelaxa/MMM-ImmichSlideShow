@@ -34,7 +34,7 @@ module.exports = NodeHelper.create({
   start: function () {
     this.validImageFileExtensions = new Set();
     // this.expressInstance = this.expressApp;
-    this.imageList = [];
+    this.imageList = 0;
     this.index = 0;
     this.config;
     this.http = null;
@@ -306,7 +306,7 @@ module.exports = NodeHelper.create({
       Log.info(LOG_PREFIX + 'image list is empty! setting timeout for next image...');
       // still no images, search again after 5 mins
       setTimeout(() => {
-        this.getNextImage();
+        this.getNextImage(config);
       }, 300000);
       return;
     }
