@@ -295,19 +295,18 @@ module.exports = NodeHelper.create({
   },
 
   getNextImage: async function (showCurrent = false) {
-    Log.info(LOG_PREFIX + 'Current Image: ', this.index+1, ' of ', this.imageList.length, '. Getting next image...');
-    // Log.info(LOG_PREFIX + 'picture date',  this.pictureDate , ' now',Date.now(),  Date.now() - this.pictureDate > 86400000);
-    if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
-      Log.info(LOG_PREFIX + 'image list is empty or index out of range!  fetching new image list...');
-      // if there are no images or all the images have been displayed or it is the next day, try loading the images again
-      this.gatherImageList(this.config);
+    Log.info(LOG_PREFIX + 'Current Image: ', this.index + 1, ' of ', this.imageList ? this.imageList.length : 0, '. Getting next image...');
+    if (!this.imageList || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
+        Log.info(LOG_PREFIX + 'image list is empty or index out of range! fetching new image list...');
+        // if there are no images or all the images have been displayed or it is the next day, try loading the images again
+        await this.gatherImageList(this.config);
     }
     // Log.info(LOG_PREFIX + 'image list', this.imageList.length, this.imageList);
-    if (!this.imageList.length) {
-      Log.info(LOG_PREFIX + 'image list is empty!  setting timeout for next image...');
+    if (!this.imageList || this.imageList.length === 0) {
+      Log.info(LOG_PREFIX + 'image list is empty! setting timeout for next image...');
       // still no images, search again after 5 mins
       setTimeout(() => {
-        this.getNextImage(config);
+        this.getNextImage();
       }, 300000);
       return;
     }
@@ -455,6 +454,7 @@ module.exports = NodeHelper.create({
         // Show the current image for now, and then the new client will fall in sync with existing clients
         this.getNextImage(true);
       }
+        this.imageList = null;
     } else if (notification === 'IMMICHSLIDESHOW_PLAY_VIDEO') {
       Log.info(
         LOG_PREFIX + 'cmd line:' + 'omxplayer --win 0,0,1920,1080 --alpha 180 ' + payload[0]
@@ -479,6 +479,8 @@ module.exports = NodeHelper.create({
     } else if (!notification.startsWith('IMMICHSLIDESHOW')) {
       Log.info(LOG_PREFIX + 'Notification is unexpected and not handled!');
     }
+      payload = null;
+
     Log.info(LOG_PREFIX + 'Notification Processed!');
   }
 });
