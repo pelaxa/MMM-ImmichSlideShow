@@ -95,7 +95,7 @@ module.exports = NodeHelper.create({
         break;
       case 'random':
         // Log.log(LOG_PREFIX + 'Sorting by modified date...');
-        sortedList = shuffleArray(imageList);
+        sortedList = this.shuffleArray(imageList);
         break;
       default:
         // sort by name
