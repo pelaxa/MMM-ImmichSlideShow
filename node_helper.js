@@ -261,13 +261,13 @@ module.exports = NodeHelper.create({
     }
 
     // Now loop through and remove any movies
-    if (this.imageList && this.imageList.length > 0) {
+    if (this.imageList.length > 0) {
       Log.info('Filtering image list for valid image extensions...');
       this.imageList = this.imageList.filter(element => {
-          // Log.info('Filtering element', element);
-          return this.checkValidImageFileExtension(element.originalPath);
+        // Log.info('Filtering element', element);
+        return this.checkValidImageFileExtension(element.originalPath);
       });
-  }
+    }
 
     // Now sort them according to config
     this.imageList = this.sortImageList(this.imageList, config.sortImagesBy, config.sortImagesDescending);
