@@ -83,6 +83,14 @@ module.exports = NodeHelper.create({
       return;
     }
 
+    // Means we have come to the end of the list and getNextImage has called gatherImageList
+    // Restart slide show
+    if (this.imageList.length > 0) {
+      Log.info(LOG_PREFIX + ' End of imagelist. Restarting slideshow.');
+      this.index = 0;
+      return;
+    }
+
     this.http = axios.create({
       baseURL: config.immichUrl + '/api',
       timeout: 5000,
@@ -151,26 +159,32 @@ module.exports = NodeHelper.create({
         Log.error(LOG_PREFIX + 'could not find the specified album in Immich. Please check your configuration again');
       }
     } else { // Assume we are in memory mode
+      Log.info(LOG_PREFIX + ' AlbumId not found. Using memory mode.');
       today.setHours(0, 0, 0, 0);
+      const promises = [];
 
       for (let i = 0; i < config.numDaysToInclude; i++) {
         const mlParams = this.apiLevel === API_LEVEL_1_82
           ? { day: today.getDate(), month: today.getMonth() + 1 }
           : { timestamp: today.toISOString() };
+
+          promises.push(
+            this.http.get('/asset/memory-lane', { params: mlParams, responseType: 'json' })
+            .then(response => (response.status === 200 ? response.data.map(memory => memory.assets) : []))
+            .catch(error => {
+                Log.error(LOG_PREFIX + 'Oops! Exception while fetching images from Immich', error.message);
+                return [];
+            })
+        );
       
         try {
-          const response = await this.http.get('/asset/memory-lane', { params: mlParams, responseType: 'json' });
-      
-          if (response.status === 200) {
-            this.imageList = this.imageList.concat(...response.data.map(memory => memory.assets));
-          } else {
-            Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
-          }
+          const responses = await Promise.all(promises);
+          this.imageList = [...responses.flat()];
         } catch (e) {
           Log.error(LOG_PREFIX + 'Oops! Exception while fetching images from Immich', e.message);
         }
 
-        // set to previous date to catch the next date
+        // Set to previous date to catch the next date
         today.setDate(today.getDate() - 1);
       }
     }
@@ -251,7 +265,7 @@ module.exports = NodeHelper.create({
 
     try {
       const response = await this.http.get('/asset/file/' + image.id, { responseType: 'arraybuffer' });
-      const imageBuffer = Buffer.from(response.data, 'binary');
+      let imageBuffer = Buffer.from(response.data, 'binary');
 
       if (image.originalPath.toLowerCase().endsWith('heic')) {
         Log.info(LOG_PREFIX + ' converting HEIC to JPG..');
@@ -263,9 +277,11 @@ module.exports = NodeHelper.create({
         })).toString('base64');
       } else {
         this.lastImageLoaded.data = imageBuffer.toString('base64');
-      }
-
+      }      
       self.sendSocketNotification('IMMICHSLIDESHOW_DISPLAY_IMAGE', this.lastImageLoaded);
+
+      // Clear for memory
+      imageBuffer = null;
     } catch (e) {
       Log.error(LOG_PREFIX + 'Oops! Exception while loading and converting image', e.message);
     }
