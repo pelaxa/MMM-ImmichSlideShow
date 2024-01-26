@@ -1,12 +1,12 @@
 {
   "name": "mmm-immichslideshow",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "",
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "jpeg-autorotate": "^8.0.1",
-    "axios": "1.4.0",
-    "heic-convert": "1.2.4"
+    "jpeg-autorotate": "^9.0.0",
+    "axios": "1.6.6",
+    "heic-convert": "2.1.0"
   }
 }

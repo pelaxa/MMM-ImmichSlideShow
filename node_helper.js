@@ -355,27 +355,30 @@ module.exports = NodeHelper.create({
     }).then(async(response) => {
       try {
         const imageBuffer = Buffer.from(response.data, 'binary');
-        if (image.originalPath.toLowerCase().endsWith('heic')) {
-          Log.info(LOG_PREFIX + ' converting HEIC to JPG..');
-          // convert the main image to jpeg
-          this.lastImageLoaded.data = (await convert({
-            buffer: imageBuffer, // the HEIC file buffer
-            format: 'JPEG',      // output format
-            quality: 1           // the jpeg compression quality, between 0 and 1
-          })).toString('base64');
+        if (imageBuffer) {
+          if (image.originalPath.toLowerCase().endsWith('heic')) {
+            Log.info(LOG_PREFIX + ' converting HEIC to JPG..');
+            // convert the main image to jpeg
+            this.lastImageLoaded.data = (await convert({
+              buffer: imageBuffer,                                  // the HEIC file buffer
+              format: 'JPEG',                                       // output format
+              quality: this.config.imageCompression || 0.7          // the jpeg compression quality, between 0 and 1
+            })).toString('base64');
+          } else {
+            this.lastImageLoaded.data = imageBuffer.toString('base64');
+          }
+          self.sendSocketNotification(
+            'IMMICHSLIDESHOW_DISPLAY_IMAGE',
+            this.lastImageLoaded
+          );
         } else {
-          this.lastImageLoaded.data = imageBuffer.toString('base64');
+          Log.error(LOG_PREFIX + 'Oops!  Empty image buffer');
         }
-
-        self.sendSocketNotification(
-          'IMMICHSLIDESHOW_DISPLAY_IMAGE',
-          this.lastImageLoaded
-        );
       } catch (e) {
-        Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image', e.message);
+        Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image(1)', e);
       }
     }).catch(error => {
-      Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image', error.message);
+      Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image(2)', error.message);
     });
     
   },

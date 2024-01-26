@@ -45,6 +45,8 @@ Module.register('MMM-ImmichSlideShow', {
     validImageFileExtensions: 'bmp,jpg,jpeg,gif,png',
     // show a panel containing information about the image currently displayed.
     showImageInfo: false,
+    // The compression level of the resulting jpeg
+    imageCompression: 0.7,
     // a comma separated list of values to display: name, date, since, geo
     imageInfo: ['date', 'since'],
     // location of the info div
@@ -188,6 +190,25 @@ Module.register('MMM-ImmichSlideShow', {
 
     if (!this.config.transitionImages) {
       this.config.transitionSpeed = '0';
+    }
+
+    if (!this.config.imageCompression) {
+      this.config.imageCompression = 0.7;
+    } else {
+      try {
+        const compressionVal = parseFloat(this.config.imageCompression);
+        if (compressionVal < 0 || compressionVal > 1) {
+          Log.warn(
+            LOG_PREFIX + 'imageCompression should be between 0 and 1!  Defaulting to 0.7'
+          );
+          this.config.imageCompression = 0.7;
+        }
+      } catch (e) {
+        Log.warn(
+          LOG_PREFIX + 'imageCompression should be a decimal value between 0 and 1!  Defaulting to 0.7'
+        );
+        this.config.imageCompression = 0.7;
+      }
     }
 
     // Lets make sure the backgroundAnimation duration matches the slideShowSpeed unless it has been

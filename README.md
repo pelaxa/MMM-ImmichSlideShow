@@ -193,6 +193,14 @@ The following properties can be configured:
 			</td>
 		</tr>
 		<tr>
+			<td><code>imageCompression</code></td>
+			<td>A value between 0 and 1 that determines the compression level of JPEG images when images need to be converted (e.g. HEIC images)<br>
+				<br><b>Example:</b> <code>0.7</code>
+				<br><b>Default value:</b> <code>0.7</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+		<tr>
 			<td><code>imageInfoLocation</code></td>
 			<td>String value, determines which corner of the screen the image info div should be displayed in.  Possible values are: bottomRight, bottomLeft, topLeft, topRight<br>
 				<br><b>Example:</b> <code>topLeft</code>
