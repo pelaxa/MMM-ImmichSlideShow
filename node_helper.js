@@ -94,8 +94,8 @@ module.exports = NodeHelper.create({
         sortedList = imageList.sort(this.sortByFilename);
         break;
       case 'random':
-        // Log.log(LOG_PREFIX + 'Sorting by modified date...');
-        sortedList = shuffleArray(imageList);
+        // Log.log(LOG_PREFIX + 'Randomizing image list...');
+        sortedList = this.shuffleArray(imageList);
         break;
       default:
         // sort by name
