@@ -240,7 +240,7 @@ Module.register('MMM-ImmichSlideShow', {
 
   // generic notification handler
   notificationReceived: function (notification, payload, sender) {
-    Log.info(LOG_PREFIX + 'notificationReceived', notification, ' || Payload: ', payload, ' || Sender: ', sender);
+    Log.info(LOG_PREFIX + 'notificationReceived', notification, ' || Payload: ', (payload ? payload.identifier : '<undefined>'), ' || Sender: ', sender);
   },
 
   // updateImageListWithArray: function (urls) {
@@ -258,7 +258,7 @@ Module.register('MMM-ImmichSlideShow', {
 
   // the socket handler
   socketNotificationReceived: function (notification, payload) {
-    Log.info(LOG_PREFIX + 'socketNotificationReceived', notification, ' || Payload: ', payload);
+    Log.info(LOG_PREFIX + 'socketNotificationReceived', notification, ' || Payload: ', payload.identifier);
 
     // check this is for this module based on the woeid
     if (notification === 'IMMICHSLIDESHOW_READY') {
@@ -392,6 +392,7 @@ Module.register('MMM-ImmichSlideShow', {
 
   displayImage: function (imageinfo) {
 
+    const imageInfo = imageinfo;
     const image = new Image();
     image.onload = () => {
       // check if there are more than 2 elements and remove the first one
@@ -476,8 +477,8 @@ Module.register('MMM-ImmichSlideShow', {
       
       if (this.config.showImageInfo) {
         let dateTime = 'N/A';
-        if (imageinfo.exifInfo) {
-          dateTime = imageinfo.exifInfo.dateTimeOriginal;
+        if (imageInfo.exifInfo) {
+          dateTime = imageInfo.exifInfo.dateTimeOriginal;
           // attempt to parse the date if possible
           if (dateTime !== null) {
             try {
@@ -493,11 +494,11 @@ Module.register('MMM-ImmichSlideShow', {
           }
         }
         // Update image info
-        this.updateImageInfo(imageinfo, dateTime);
+        this.updateImageInfo(imageInfo, dateTime);
       }
 
       if (!this.browserSupportsExifOrientationNatively) {
-        const exifOrientation = imageinfo.exifInfo.orientation;
+        const exifOrientation = imageInfo.exifInfo.orientation;
         imageDiv.style.transform = this.getImageTransformCss(exifOrientation);
       }
      
@@ -505,9 +506,9 @@ Module.register('MMM-ImmichSlideShow', {
       this.imagesDiv.appendChild(transitionDiv);
     };
 
-    image.src = 'data:image/jpeg;base64, ' + imageinfo.data;
+    image.src = 'data:image/jpeg;base64, ' + imageInfo.data;
     this.sendSocketNotification('IMMICHSLIDESHOW_IMAGE_UPDATED', {
-      url: imageinfo.path
+      url: imageInfo.path
     });
   },
 
@@ -637,6 +638,7 @@ Module.register('MMM-ImmichSlideShow', {
     });
 
     this.imageInfoDiv.innerHTML = innerHTML;
+    imageProps = null;
   },
 
   suspend: function () {
