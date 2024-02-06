@@ -162,7 +162,7 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>sortImagesBy</code></td>
-			<td>String value, determines how images are sorted.  Possible values are: name (by file name), created (by original date of the image based on Exif data), modified (by modified date of the image based on Exif data), random (by random order), none (default chronological day order, meaning all images for the 1st over the years before the images for the 2nd, etc).<br>
+			<td>String value, determines how images are sorted.  Possible values are: name (by file name), created (by Immich created time), modified (by Immich modified time), taken (by original date of the image based on Exif data), random (by random order), none (default chronological day order, meaning all images for the 1st over the years before the images for the 2nd, etc).<br>
 				<br><b>Example:</b> <code>created</code>
 				<br><b>Default value:</b> <code>none</code>
 				<br>This value is <b>OPTIONAL</b>
@@ -239,6 +239,34 @@ The following properties can be configured:
 			displayed is shown.<br>
 				<br><b>Example:</b> <code>true</code>
 				<br><b>Default value:</b> <code>false</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+    	<tr>
+			<td><code>backdropFilter</code></td>
+			<td>The filter to apply to the background.  This is useful when using a semi-transparent background color so that the items behind the background are filtered.<br>
+        This can be set to any valid <a target="backdrop_filter" href="https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter">CSS backdrop-filter</a> value (e.g. 'blur(10px)')<br>
+				<br><b>Example:</b> <code>'blur(10px)'</code>
+				<br><b>Default value:</b> <code>'blur(5px)</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+    	<tr>
+			<td><code>backgroundColor</code></td>
+			<td>The color of the background when the image does not cover the entire screen.<br>
+        This can be set to a color (e.g. '#000000') or and semi-transparent color (e.g. 'rgba(0,0,0,0.5)')<br>
+				<br><b>Example:</b> <code>'rgba(0,0,0,0.5)'</code>
+				<br><b>Default value:</b> <code>'#000' (i.e. black)</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+    	<tr>
+			<td><code>backgroundSize</code></td>
+			<td>The sizing of the background image. Values can be:<br>
+        cover: Resize the background image to cover the entire container, even if it has to stretch the image or cut a little bit off one of the edges.<br>
+        contain: Resize the background image to make sure the image is fully visible<br>
+				<br><b>Example:</b> <code>'contain'</code>
+				<br><b>Default value:</b> <code>'cover'</code>
 				<br>This value is <b>OPTIONAL</b>
 			</td>
 		</tr>

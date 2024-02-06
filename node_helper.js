@@ -14,12 +14,13 @@
 
 // call in the required classes
 const Log = require('../../js/logger.js');
-var NodeHelper = require('node_helper');
+const NodeHelper = require('node_helper');
 const jo = require('jpeg-autorotate');
 const axios = require('axios');
 const convert = require('heic-convert');
 const LOG_PREFIX = 'MMM-ImmichSlideShow :: node_helper :: ';
 
+const API_LEVEL_1_94 = '1.94+';
 const API_LEVEL_1_82 = '1.82+';
 const API_LEVEL_1 = '1.0+';
 
@@ -76,6 +77,14 @@ module.exports = NodeHelper.create({
     else return -1;
   },
 
+  // sort by created attribute
+  sortByTaken: function (a, b) {
+    aL = a.exifInfo?.dateTimeOriginal || a.fileCreatedAt;
+    bL = b.exifInfo?.dateTimeOriginal || b.fileCreatedAt;
+    if (aL > bL) return 1;
+    else return -1;
+  },
+
   sortImageList: function (imageList, sortBy, sortDescending) {
     Log.info(LOG_PREFIX + 'imageList is Array?', Array.isArray(imageList));
     let sortedList = imageList;
@@ -88,6 +97,10 @@ module.exports = NodeHelper.create({
         // Log.log(LOG_PREFIX + 'Sorting by modified date...');
         sortedList = imageList.sort(this.sortByModified);
         break;
+      case 'taken':
+          // Log.log(LOG_PREFIX + 'Sorting by taken date...');
+          sortedList = imageList.sort(this.sortByTaken);
+          break;
       case 'name':
         // sort by name
         // Log.log(LOG_PREFIX + 'Sorting by name...');
@@ -123,22 +136,35 @@ module.exports = NodeHelper.create({
   },
 
   // gathers the image list
-  gatherImageList: async function (config, sendNotification) {
+  gatherImageList: async function (config) {
     // Invalid config. retrieve it again
     if (config === undefined) {
       this.sendSocketNotification('IMMICHSLIDESHOW_REGISTER_CONFIG');
       return;
     }
 
-    // create and axis instance
-    this.http = axios.create({
-      baseURL: config.immichUrl + '/api',
-      timeout: 5000,
-      headers: {
-        'x-api-key': config.apiKey,
-        'Accept': 'application/json'
-      }
-    })
+    if (this.http === null) {
+      // create and axis instance
+      this.http = axios.create({
+        baseURL: config.immichUrl + '/api',
+        timeout: 5000,
+        headers: {
+          'x-api-key': config.apiKey,
+          'Accept': 'application/json'
+        }
+      });
+
+      // ENABLE DEBUGGING FOR AXIS
+      // this.http.interceptors.request.use(request => {
+      //   console.log('Starting Request', JSON.stringify(request, null, 2));
+      //   return request;
+      // });
+      
+      // this.http.interceptors.response.use(response => {
+      //   console.log('Response:', response);
+      //   return response;
+      // });
+    }
    
     // create an empty main image list
     this.imageList = [];
@@ -169,6 +195,11 @@ module.exports = NodeHelper.create({
         this.apiLevel = API_LEVEL_1_82;
     }
 
+    if (serverVersion.major > 1 ||
+      (serverVersion.major === 1 && serverVersion.minor >= 94)) {
+        this.apiLevel = API_LEVEL_1_94;
+    }
+    Log.info(LOG_PREFIX + 'Service Version is', this.apiLevel, JSON.stringify(serverVersion));
 
     // First check to see what mode we are operating in
     if (config.mode === 'album') {
@@ -228,12 +259,12 @@ module.exports = NodeHelper.create({
       today.setSeconds(0);
       today.setMilliseconds(0);
       Log.info(LOG_PREFIX + 'numDaysToInclude: ', config.numDaysToInclude);
-      for (var i=0; i < config.numDaysToInclude; i++) {
+      for (let i=0; i < config.numDaysToInclude; i++) {
         // as of version 1.82, the API for memory lane has changed.
         let mlParams = {
           timestamp: today.toISOString()
         };
-        if (this.apiLevel === API_LEVEL_1_82) {
+        if (this.apiLevel !== API_LEVEL_1) {
           mlParams = {
             day: today.getDate(),
             month: today.getMonth()+1
@@ -262,9 +293,9 @@ module.exports = NodeHelper.create({
 
     // Now loop through and remove any movies
     if (this.imageList.length > 0) {
-      Log.info('Filtering image list for valid image extensions...');
+      Log.info(LOG_PREFIX + 'Filtering image list for valid image extensions...');
       this.imageList = this.imageList.filter(element => {
-        // Log.info('Filtering element', element);
+        // Log.info(LOG_PREFIX + 'Filtering element', element);
         return this.checkValidImageFileExtension(element.originalPath);
       });
     }
@@ -289,59 +320,66 @@ module.exports = NodeHelper.create({
     };
 
     // signal ready
-    if (sendNotification) {
-      this.sendSocketNotification('IMMICHSLIDESHOW_READY', returnPayload);
-    }
+    this.sendSocketNotification('IMMICHSLIDESHOW_READY', returnPayload);
   },
 
-  getNextImage: async function (showCurrent = false) {
-    Log.info(LOG_PREFIX + 'Current Image: ', this.index+1, ' of ', this.imageList.length, '. Getting next image...');
-    // Log.info(LOG_PREFIX + 'picture date',  this.pictureDate , ' now',Date.now(),  Date.now() - this.pictureDate > 86400000);
+  displayImage: async function(showCurrent = false) {
+    Log.info(LOG_PREFIX + 'displayImage called', showCurrent, this.lastImageLoaded ? 'has last image' : 'no last image');
+    if (showCurrent && this.lastImageLoaded) {
+      // Just send the current image
+      this.sendSocketNotification(
+        'IMMICHSLIDESHOW_DISPLAY_IMAGE',
+        this.lastImageLoaded
+      );
+      return;
+    }
+
+    // if there are no images or all the images have been displayed or it is the next day, try loading the images again
     if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
-      Log.info(LOG_PREFIX + 'image list is empty or index out of range!  fetching new image list...');
-      // if there are no images or all the images have been displayed or it is the next day, try loading the images again
+      Log.info(LOG_PREFIX + 'image list is empty or index out of range or list too old!  fetching new image list...');
+      // Force the index to 0 so that we start from the beginning
+      // and calling this function again will not get stuck in a loop
+      if (this.index >= this.imageList.length) {
+        this.index = 0;
+      }
+      // Set the last Image to null so we cannot load it and have to progress
+      this.lastImageLoaded = null;
       this.gatherImageList(this.config);
+      return;
     }
     // Log.info(LOG_PREFIX + 'image list', this.imageList.length, this.imageList);
     if (!this.imageList.length) {
       Log.info(LOG_PREFIX + 'image list is empty!  setting timeout for next image...');
       // still no images, search again after 5 mins
       setTimeout(() => {
-        this.getNextImage(config);
+        this.displayImage();
       }, 300000);
       return;
     }
 
-    var image = this.imageList[this.index];
-    if (showCurrent) {
-      // Just send the current image
-      self.sendSocketNotification(
-        'IMMICHSLIDESHOW_DISPLAY_IMAGE',
-        this.lastImageLoaded
-      );
-      return;
-    } else {
-      // Otherwise increment our counter
-      this.index++;
-    }
+    let image = this.imageList[this.index];
+
     Log.info(LOG_PREFIX + 'reading image "' + image.originalPath + '"');
-    self = this;
     
     this.lastImageLoaded = {
-      identifier: self.config.identifier,
+      identifier: this.config.identifier,
       path: image.originalPath,
       exifInfo: image.exifInfo || {},
       people: [],
       data: null,
       imageId: image.id,
-      index: self.index,
-      total: self.imageList.length
+      index: this.index+1, // Index is zero based
+      total: this.imageList.length
     };
 
-    // If this version is higher than 1.81, then we need to fetch the exifInfo by making an extra request
-    if (this.apiLevel === API_LEVEL_1_82) {
+    // If there is no exif info available, then fetch it with a separate call based on the API version
+    if (!image.exifInfo) {
+      let assetUrl = '/asset/assetById';
+      if (this.apiLevel === API_LEVEL_1_94) {
+        assetUrl = '/asset';
+      }
       try {
-        const exifResponse = await this.http.get(`/asset/assetById/${image.id}`, { responseType: 'json' });
+        const exifResponse = await this.http.get(`${assetUrl}/${image.id}`, { responseType: 'json' });
         if (exifResponse.status === 200) {
           this.lastImageLoaded.exifInfo = exifResponse.data.exifInfo;
           this.lastImageLoaded.people = exifResponse.data.people;
@@ -349,14 +387,17 @@ module.exports = NodeHelper.create({
       } catch (e) {
         Log.error(LOG_PREFIX + 'Oops!  Exception while fetching image metadata', e.message);
       }
+
     }
-    this.http.get(`/asset/file/${image.id}`, {
+
+    let self = this;
+    this.http.get(`/asset/file/${image.id}?isWeb=true`, {
       responseType: 'arraybuffer'
     }).then(async(response) => {
       try {
         const imageBuffer = Buffer.from(response.data, 'binary');
         if (imageBuffer) {
-          if (image.originalPath.toLowerCase().endsWith('heic')) {
+          if (image.originalPath.toLowerCase().endsWith('heic') && this.apiLevel !== API_LEVEL_1_94) {
             Log.info(LOG_PREFIX + ' converting HEIC to JPG..');
             // convert the main image to jpeg
             this.lastImageLoaded.data = (await convert({
@@ -380,20 +421,33 @@ module.exports = NodeHelper.create({
     }).catch(error => {
       Log.error(LOG_PREFIX + 'Oops!  Exception while loading and converting image(2)', error.message);
     });
+  },
+
+  getNextImage: function (showCurrent = false, reloadOnLoop = false) {
+    Log.info(LOG_PREFIX + 'Current Image: ', this.index+1, ' of ', this.imageList.length, '. Getting next image...', showCurrent, reloadOnLoop);
     
+    if (!showCurrent) {
+      this.index++;
+      // reloadOnLoop is only set when the pictures progress naturally, not when
+      // next command is received
+      if (!reloadOnLoop && this.index >= this.imageList.length) {
+        this.index = 0;
+      }
+    }
+    this.displayImage();
   },
 
   getPrevImage: function () {
-    // imageIndex is incremented after displaying an image so -2 is needed to
+    Log.info('Moving to previous image', this.index, this.imageList.length);
     // get to previous image index.
-    this.index -= 2;
+    this.index--;
 
     // Case of first image, go to end of array.
     if (this.index < 0) {
-      Log.info('Reaching begining of pictures! looping around...')
-      this.index = this.imageList.length - this.index;
+      Log.info('Reaching beginning of pictures! looping around...')
+      this.index = this.imageList.length-1;
     }
-    this.getNextImage();
+    this.displayImage();
   },
 
   // resizeImage: function (input, callback) {
@@ -417,11 +471,11 @@ module.exports = NodeHelper.create({
     Log.info(LOG_PREFIX + 'Resume called!');
     if (!this.timer) {
       Log.info(LOG_PREFIX + 'Resuming...', this.config.slideshowSpeed);
-      this.getNextImage();
       this.timer = setInterval(() => {
-        this.getNextImage();
+        this.getNextImage(false, true);
       }, this.config.slideshowSpeed);
     }
+    this.displayImage(true);
   },
 
   suspend: function() {
@@ -452,23 +506,12 @@ module.exports = NodeHelper.create({
         // the MagicMirror startup banner to get stuck sometimes.
         this.config = config;
         setTimeout(() => {
-          this.gatherImageList(config, true);
+          this.gatherImageList(config);
         }, 200);
       } else {
         // Show the current image for now, and then the new client will fall in sync with existing clients
         this.getNextImage(true);
       }
-    } else if (notification === 'IMMICHSLIDESHOW_PLAY_VIDEO') {
-      Log.info(
-        LOG_PREFIX + 'cmd line:' + 'omxplayer --win 0,0,1920,1080 --alpha 180 ' + payload[0]
-      );
-      exec(
-        'omxplayer --win 0,0,1920,1080 --alpha 180 ' + payload[0],
-        (e, stdout, stderr) => {
-          this.sendSocketNotification('IMMICHSLIDESHOW_PLAY', null);
-          Log.info(LOG_PREFIX + 'mw video done');
-        }
-      );
     } else if (notification === 'IMMICHSLIDESHOW_NEXT_IMAGE') {
       this.getNextImage();
     } else if (notification === 'IMMICHSLIDESHOW_PREV_IMAGE') {

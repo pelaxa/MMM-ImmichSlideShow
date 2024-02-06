@@ -55,6 +55,10 @@ Module.register('MMM-ImmichSlideShow', {
     imageInfoNoFileExt: false,
     // show a progress bar indicating how long till the next image is displayed.
     showProgressBar: false,
+    // the color of the background when the image does not take up the full screen
+    backgroundColor: '#000', // can also be rbga(x,y,z,alpha)
+    // the filter to apply to the background.  Useful to give the background a translucent effect
+    backdropFilter: 'blur(5px)',
     // the sizing of the background image
     // cover: Resize the background image to cover the entire container, even if it has to stretch the image or cut a little bit off one of the edges
     // contain: Resize the background image to make sure the image is fully visible
@@ -90,8 +94,7 @@ Module.register('MMM-ImmichSlideShow', {
       'flipY'
     ],
     transitionTimingFunction: 'cubic-bezier(.17,.67,.35,.96)',
-    animations: ['slide', 'zoomOut', 'zoomIn'],
-    changeImageOnResume: false
+    animations: ['slide', 'zoomOut', 'zoomIn']
   },
 
   // load function
@@ -223,8 +226,6 @@ Module.register('MMM-ImmichSlideShow', {
     this.browserSupportsExifOrientationNatively = CSS.supports(
       'image-orientation: from-image'
     );
-
-    this.playingVideo = false;
   },
 
   getScripts: function () {
@@ -241,104 +242,108 @@ Module.register('MMM-ImmichSlideShow', {
   // generic notification handler
   notificationReceived: function (notification, payload, sender) {
     Log.info(LOG_PREFIX + 'notificationReceived', notification, ' || Payload: ', (payload ? payload.identifier : '<undefined>'), ' || Sender: ', sender);
-  },
 
-  // updateImageListWithArray: function (urls) {
-  //   this.imageList = urls.splice(0);
-  //   this.imageIndex = 0;
-  //   this.updateImage();
-  //   if (
-  //     !this.playingVideo &&
-  //     (this.timer || (this.savedImages && this.savedImages.length == 0))
-  //   ) {
-  //     // Restart timer only if timer was already running
-  //     this.resume();
-  //   }
-  // },
-
-  // the socket handler
-  socketNotificationReceived: function (notification, payload) {
-    Log.info(LOG_PREFIX + 'socketNotificationReceived', notification, ' || Payload: ', payload.identifier);
-
-    // check this is for this module based on the woeid
-    if (notification === 'IMMICHSLIDESHOW_READY') {
-      // // Log.info(LOG_PREFIX + 'Returning Images, payload:' + JSON.stringify(payload));
-      // // set the image list
-      // if (this.savedImages) {
-      //   this.savedImages = payload.imageList;
-      //   this.savedIndex = 0;
-      // } else {
-      //   this.imageList = payload.imageList;
-      //   // if image list actually contains images
-      //   // set loaded flag to true and update dom
-      //   if (this.imageList.length > 0) {
-      //     this.updateImage(); //Added to show the image at least once, but not change it within this.resume()
-      //     if (!this.playingVideo) {
-      //       this.resume();
-      //     }
-      //   }
-      // }
-      if (payload.identifier === this.identifier) {
-        // this.sendSocketNotification('IMMICHSLIDESHOW_NEXT_IMAGE');
-        if (!this.playingVideo) {
-          this.resume();
+    if (notification === 'DOM_OBJECTS_CREATED') {
+      Log.info(LOG_PREFIX + 'Sedning register API notification for ' + this.name);
+      this.sendNotification('REGISTER_API', {
+        module: this.name,
+        path:  this.name.toLowerCase(),
+        actions: {
+          showNext: {
+            method: 'GET',
+            notification: "IMMICHSLIDESHOW_NEXT"
+          },
+          showPrevisous: {
+            method: 'GET',
+            notification: "IMMICHSLIDESHOW_PREVIOUS"
+          },
+          pause: {
+            method: 'GET',
+            notification: "IMMICHSLIDESHOW_PAUSE"
+          },
+          resume: {
+            method: 'GET',
+            notification: "IMMICHSLIDESHOW_RESUME"
+          },
+          updateImageList: {
+            method: 'GET',
+            notification: "IMMICHSLIDESHOW_UPDATE_IMAGE_LIST"
+          }
         }
-      }
-    } else if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
-      // Update config in backend
-      this.updateImageList();
-    } else if (notification === 'IMMICHSLIDESHOW_PLAY') {
-      // Change to next image and start timer.
-      // this.updateImage();
-      if (!this.playingVideo) {
-        this.resume();
-      }
-    } else if (notification === 'IMMICHSLIDESHOW_DISPLAY_IMAGE') {
-      // check this is for this module based on the woeid
-      if (payload.identifier === this.identifier) {
-        this.displayImage(payload);
-      }
-    // } else if (notification === 'IMMICHSLIDESHOW_FILELIST') {
-    //   // bubble up filelist notifications
-    //   this.sendSocketNotification('IMMICHSLIDESHOW_FILELIST', payload);
-    // } else if (notification === 'IMMICHSLIDESHOW_UPDATE_IMAGE_LIST') {
-    //   this.imageIndex = -1;
-    //   this.updateImageList();
-    //   this.updateImage();
-    } else if (notification === 'IMMICHSLIDESHOW_IMAGE_UPDATE') {
-      Log.info(LOG_PREFIX + 'Changing Background');
+      }); 
+    
+      
+     } else if (notification === 'IMMICHSLIDESHOW_UPDATE_IMAGE_LIST') {
       this.suspend();
-      // this.updateImage();
-      if (!this.playingVideo) {
-        this.resume();
-      }
+      this.updateImageList();
+      this.updateImage();
+      // Restart timer only if timer was already running
+      this.resume();
+    // } else if (notification === 'IMMICHSLIDESHOW_IMAGE_UPDATE') {
+    //   Log.info(LOG_PREFIX + 'Changing Background');
+    //   this.suspend();
+    //   // this.updateImage();
+    //   this.resume();
     } else if (notification === 'IMMICHSLIDESHOW_NEXT') {
+      this.suspend();
       // Change to next image
-      // this.updateImage();
-      if (!this.playingVideo) {
-        // Restart timer only if timer was already running
-        this.resume();
-      }
+      this.updateImage();
+      // Restart timer only if timer was already running
+      this.resume();
     } else if (notification === 'IMMICHSLIDESHOW_PREVIOUS') {
+      this.suspend();
       // Change to previous image
       this.updateImage(/* skipToPrevious= */ true);
-      if (!this.playingVideo) {
-        // Restart timer only if timer was already running
-        this.resume();
-      }
+      // Restart timer only if timer was already running
+      this.resume();
+    } else if (notification === 'IMMICHSLIDESHOW_RESUME') {
+     this.resume();
     } else if (notification === 'IMMICHSLIDESHOW_PAUSE') {
-      // Stop timer.
       this.suspend();
     } else {
       Log.info(LOG_PREFIX + 'received an unexpected system notification: ' + notification);
     }
   },
 
+  // the socket handler
+  socketNotificationReceived: function (notification, payload) {
+    Log.info(LOG_PREFIX + 'socketNotificationReceived', notification, ' || Payload: ', payload ? payload.identifier : '<null>');
+    // check this is for this module based on the woeid
+    if (notification === 'IMMICHSLIDESHOW_READY') {
+    
+      if (payload.identifier === this.identifier) {
+        this.resume();
+      }
+    } else if (notification === 'IMMICHSLIDESHOW_FILELIST') {
+      // bubble up filelist notifications
+      // this.sendSocketNotification('IMMICHSLIDESHOW_FILELIST', payload);
+      this.imageList = payload;
+      // Log.info (LOG_PREFIX + " >>>>>>>>>>>>>>> IMAGE LIST", JSON.stringify(payload));
+    } else if (notification === 'IMMICHSLIDESHOW_DISPLAY_IMAGE') {
+      // check this is for this module based on the id
+      if (payload.identifier === this.identifier) {
+        Log.info(LOG_PREFIX + 'Displaying current image', payload);
+        this.displayImage(payload);
+      }
+    } else if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
+      // Update config in backend
+      this.updateImageList();
+    } else {
+      Log.info(LOG_PREFIX + 'received an unexpected module notification: ' + notification);
+    }
+
+    
+  },
+
   // Override dom generator.
   getDom: function () {
-    var wrapper = document.createElement('div');
+    let wrapper = document.createElement('div');
     this.imagesDiv = document.createElement('div');
     this.imagesDiv.className = 'images';
+    // Create a background color around the image is not see through
+    this.imagesDiv.style.backgroundColor = this.config.backgroundColor || 'transparent';
+    this.imagesDiv.style.backdropFilter = this.config.backdropFilter || 'blur(10px)';
+
     wrapper.appendChild(this.imagesDiv);
 
     if (this.config.showImageInfo) {
@@ -354,10 +359,6 @@ Module.register('MMM-ImmichSlideShow', {
         LOG_PREFIX + 'Missing required parameter apiKey.'
       );
     } else {
-      // create an empty image list
-      // this.imageList = [];
-      // set beginning image index to 0, as it will auto increment on start
-      // this.imageIndex = 0;
       this.updateImageList();
     }
 
@@ -365,7 +366,7 @@ Module.register('MMM-ImmichSlideShow', {
   },
 
   createDiv: function () {
-    var div = document.createElement('div');
+    let div = document.createElement('div');
     div.style.backgroundSize = this.config.backgroundSize;
     div.style.backgroundPosition = this.config.backgroundPosition;
     div.className = 'image';
@@ -446,10 +447,10 @@ Module.register('MMM-ImmichSlideShow', {
           imageDiv.style.backgroundSize = 'cover';
 
           // check to see if the width of the picture is larger or the height
-          var width = image.width;
-          var height = image.height;
-          var adjustedWidth = (width * window.innerHeight) / height;
-          var adjustedHeight = (height * window.innerWidth) / width;
+          let width = image.width;
+          let height = image.height;
+          let adjustedWidth = (width * window.innerHeight) / height;
+          let adjustedHeight = (height * window.innerWidth) / width;
 
           if (
             adjustedWidth / window.innerWidth >
@@ -507,37 +508,13 @@ Module.register('MMM-ImmichSlideShow', {
     };
 
     image.src = 'data:image/jpeg;base64, ' + imageInfo.data;
-    this.sendSocketNotification('IMMICHSLIDESHOW_IMAGE_UPDATED', {
+    this.sendNotification('IMMICHSLIDESHOW_IMAGE_UPDATED', {
       url: imageInfo.path
     });
   },
 
-  updateImage: function (backToPreviousImage = false, imageToDisplay = null) {
-    Log.info(LOG_PREFIX + 'updateImage ::', backToPreviousImage, ', ', imageToDisplay);
-    // if (imageToDisplay) {
-    //   this.displayImage({
-    //     path: imageToDisplay,
-    //     data: imageToDisplay,
-    //     index: 1,
-    //     total: 1
-    //   });
-    //   return;
-    // }
-
-    // if (this.imageList.length > 0) {
-    //   this.imageIndex = this.imageIndex + 1;
-
-    //   imageToDisplay = this.imageList.splice(this.imageIndex, 1);
-    //   Log.info(LOG_PREFIX + 'imageToDisplay >> ', imageToDisplay);
-    //   this.displayImage({
-    //     path: imageToDisplay[0],
-    //     data: imageToDisplay[0],
-    //     index: 1,
-    //     total: 1
-    //   });
-    //   return;
-    // }
-
+  updateImage: function (backToPreviousImage = false) {
+    Log.info(LOG_PREFIX + 'updateImage called... backtoPrevious?', backToPreviousImage);
     if (backToPreviousImage) {
       this.sendSocketNotification('IMMICHSLIDESHOW_PREV_IMAGE');
     } else {
@@ -642,34 +619,26 @@ Module.register('MMM-ImmichSlideShow', {
   },
 
   suspend: function () {
-    // if (this.timer) {
-    //   clearInterval(this.timer);
-    //   this.timer = null;
-    // }
+    Log.info(LOG_PREFIX + 'Suspend called...');
+    // Hide the progress while paused
+    const oldDiv = document.getElementsByClassName('progress-inner')[0];
+    oldDiv.style.display = 'none';
+
     this.sendSocketNotification(
       'IMMICHSLIDESHOW_SUSPEND'
     );
   },
 
   resume: function () {
-    //this.updateImage(); //Removed to prevent image change whenever MMM-Carousel changes slides
-    this.suspend();
-    var self = this;
-
-    if (self.config.changeImageOnResume) {
-      self.updateImage();
-    }
-
-    // this.timer = setInterval(function () {
-    //   // Log.info(LOG_PREFIX + 'updating from resume');
-    //   self.updateImage();
-    // }, self.config.slideshowSpeed);
+    Log.info(LOG_PREFIX + 'Resume called...');
+    // this.suspend();
     this.sendSocketNotification(
       'IMMICHSLIDESHOW_RESUME'
     );
   },
 
   updateImageList: function () {
+    Log.info(LOG_PREFIX + 'updateImageList called...');
     // this.suspend();
     // Log.info(LOG_PREFIX + 'Getting Images');
     // ask helper function to get the image list
