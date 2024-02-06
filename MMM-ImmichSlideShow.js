@@ -264,21 +264,17 @@ Module.register('MMM-ImmichSlideShow', {
           resume: {
             method: 'GET',
             notification: "IMMICHSLIDESHOW_RESUME"
-          },
-          updateImageList: {
-            method: 'GET',
-            notification: "IMMICHSLIDESHOW_UPDATE_IMAGE_LIST"
           }
         }
       }); 
     
       
-     } else if (notification === 'IMMICHSLIDESHOW_UPDATE_IMAGE_LIST') {
-      this.suspend();
-      this.updateImageList();
-      this.updateImage();
-      // Restart timer only if timer was already running
-      this.resume();
+    //  } else if (notification === 'IMMICHSLIDESHOW_UPDATE_IMAGE_LIST') {
+    //   this.suspend();
+    //   this.updateImageList();
+    //   this.updateImage();
+    //   // Restart timer only if timer was already running
+    //   this.resume();
     // } else if (notification === 'IMMICHSLIDESHOW_IMAGE_UPDATE') {
     //   Log.info(LOG_PREFIX + 'Changing Background');
     //   this.suspend();
