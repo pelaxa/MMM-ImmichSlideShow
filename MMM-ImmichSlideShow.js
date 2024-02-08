@@ -99,7 +99,7 @@ Module.register('MMM-ImmichSlideShow', {
 
   // load function
   start: function () {
-    Log.info(
+    Log.debug(
       LOG_PREFIX + 'starting...'
     );
     // add identifier to the config
@@ -112,7 +112,7 @@ Module.register('MMM-ImmichSlideShow', {
     // set no error
     // this.errorMessage = null;
 
-    // Log.info(LOG_PREFIX + 'current config', this.config);
+    // Log.debug(LOG_PREFIX + 'current config', this.config);
 
     //validate immich properties
     if (this.config.mode && this.config.mode.trim().toLowerCase() === MODE_MEMORY) {
@@ -241,10 +241,10 @@ Module.register('MMM-ImmichSlideShow', {
 
   // generic notification handler
   notificationReceived: function (notification, payload, sender) {
-    Log.info(LOG_PREFIX + 'notificationReceived', notification, ' || Payload: ', (payload ? payload.identifier : '<undefined>'), ' || Sender: ', sender);
+    Log.debug(LOG_PREFIX + 'notificationReceived', notification, ' || Payload: ', (payload ? payload.identifier : '<undefined>'), ' || Sender: ', sender);
 
     if (notification === 'DOM_OBJECTS_CREATED') {
-      Log.info(LOG_PREFIX + 'Sedning register API notification for ' + this.name);
+      Log.debug(LOG_PREFIX + 'Sedning register API notification for ' + this.name);
       this.sendNotification('REGISTER_API', {
         module: this.name,
         path:  this.name.toLowerCase(),
@@ -276,7 +276,7 @@ Module.register('MMM-ImmichSlideShow', {
     //   // Restart timer only if timer was already running
     //   this.resume();
     // } else if (notification === 'IMMICHSLIDESHOW_IMAGE_UPDATE') {
-    //   Log.info(LOG_PREFIX + 'Changing Background');
+    //   Log.debug(LOG_PREFIX + 'Changing Background');
     //   this.suspend();
     //   // this.updateImage();
     //   this.resume();
@@ -297,13 +297,13 @@ Module.register('MMM-ImmichSlideShow', {
     } else if (notification === 'IMMICHSLIDESHOW_PAUSE') {
       this.suspend();
     } else {
-      Log.info(LOG_PREFIX + 'received an unexpected system notification: ' + notification);
+      Log.debug(LOG_PREFIX + 'received an unexpected system notification: ' + notification);
     }
   },
 
   // the socket handler
   socketNotificationReceived: function (notification, payload) {
-    Log.info(LOG_PREFIX + 'socketNotificationReceived', notification, ' || Payload: ', payload ? payload.identifier : '<null>');
+    Log.debug(LOG_PREFIX + 'socketNotificationReceived', notification, ' || Payload: ', payload ? payload.identifier : '<null>');
     // check this is for this module based on the woeid
     if (notification === 'IMMICHSLIDESHOW_READY') {
     
@@ -314,18 +314,18 @@ Module.register('MMM-ImmichSlideShow', {
       // bubble up filelist notifications
       // this.sendSocketNotification('IMMICHSLIDESHOW_FILELIST', payload);
       this.imageList = payload;
-      // Log.info (LOG_PREFIX + " >>>>>>>>>>>>>>> IMAGE LIST", JSON.stringify(payload));
+      // Log.debug (LOG_PREFIX + " >>>>>>>>>>>>>>> IMAGE LIST", JSON.stringify(payload));
     } else if (notification === 'IMMICHSLIDESHOW_DISPLAY_IMAGE') {
       // check this is for this module based on the id
       if (payload.identifier === this.identifier) {
-        Log.info(LOG_PREFIX + 'Displaying current image', payload);
+        Log.debug(LOG_PREFIX + 'Displaying current image', payload);
         this.displayImage(payload);
       }
     } else if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
       // Update config in backend
       this.updateImageList();
     } else {
-      Log.info(LOG_PREFIX + 'received an unexpected module notification: ' + notification);
+      Log.warn(LOG_PREFIX + 'received an unexpected module notification: ' + notification);
     }
 
     
@@ -481,7 +481,7 @@ Module.register('MMM-ImmichSlideShow', {
             try {
               dateTime = moment(dateTime);
             } catch (e) {
-              Log.info(
+              Log.debug(
                 LOG_PREFIX + 'Failed to parse dateTime: ' +
                 dateTime +
                 ' to format YYYY:MM:DD HH:mm:ss'
@@ -510,7 +510,7 @@ Module.register('MMM-ImmichSlideShow', {
   },
 
   updateImage: function (backToPreviousImage = false) {
-    Log.info(LOG_PREFIX + 'updateImage called... backtoPrevious?', backToPreviousImage);
+    Log.debug(LOG_PREFIX + 'updateImage called... backtoPrevious?', backToPreviousImage);
     if (backToPreviousImage) {
       this.sendSocketNotification('IMMICHSLIDESHOW_PREV_IMAGE');
     } else {
@@ -615,7 +615,7 @@ Module.register('MMM-ImmichSlideShow', {
   },
 
   suspend: function () {
-    Log.info(LOG_PREFIX + 'Suspend called...');
+    Log.debug(LOG_PREFIX + 'Suspend called...');
     // Hide the progress while paused
     const oldDiv = document.getElementsByClassName('progress-inner')[0];
     oldDiv.style.display = 'none';
@@ -626,7 +626,7 @@ Module.register('MMM-ImmichSlideShow', {
   },
 
   resume: function () {
-    Log.info(LOG_PREFIX + 'Resume called...');
+    Log.debug(LOG_PREFIX + 'Resume called...');
     // this.suspend();
     this.sendSocketNotification(
       'IMMICHSLIDESHOW_RESUME'
@@ -634,9 +634,9 @@ Module.register('MMM-ImmichSlideShow', {
   },
 
   updateImageList: function () {
-    Log.info(LOG_PREFIX + 'updateImageList called...');
+    Log.debug(LOG_PREFIX + 'updateImageList called...');
     // this.suspend();
-    // Log.info(LOG_PREFIX + 'Getting Images');
+    // Log.debug(LOG_PREFIX + 'Getting Images');
     // ask helper function to get the image list
     this.sendSocketNotification(
       'IMMICHSLIDESHOW_REGISTER_CONFIG',

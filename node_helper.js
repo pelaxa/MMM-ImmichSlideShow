@@ -86,7 +86,7 @@ module.exports = NodeHelper.create({
   },
 
   sortImageList: function (imageList, sortBy, sortDescending) {
-    Log.info(LOG_PREFIX + 'imageList is Array?', Array.isArray(imageList));
+    Log.debug(LOG_PREFIX + 'sortImageList :: imageList is Array?', Array.isArray(imageList));
     let sortedList = imageList;
     switch (sortBy) {
       case 'created':
@@ -180,7 +180,7 @@ module.exports = NodeHelper.create({
     //determine the server version first
     let serverVersion = {major:1, minor:0, patch:0};
     try{
-      Log.info(LOG_PREFIX + 'fetching server version...');
+      Log.debug(LOG_PREFIX + 'fetching server version...');
       response = await this.http.get('/server-info/version', {params: {}, responseType: 'json'});
       if (response.status === 200) {
         serverVersion = response.data;
@@ -199,7 +199,7 @@ module.exports = NodeHelper.create({
       (serverVersion.major === 1 && serverVersion.minor >= 94)) {
         this.apiLevel = API_LEVEL_1_94;
     }
-    Log.info(LOG_PREFIX + 'Service Version is', this.apiLevel, JSON.stringify(serverVersion));
+    Log.debug(LOG_PREFIX + 'Server Version is', this.apiLevel, JSON.stringify(serverVersion));
 
     // First check to see what mode we are operating in
     if (config.mode === 'album') {
@@ -211,9 +211,9 @@ module.exports = NodeHelper.create({
             // Loop through the albums to find the right now
             for (let i=0; i < response.data.length; i++) {
               const album = response.data[i];
-              Log.info(LOG_PREFIX + `comparing ${album.albumName} to ${config.albumName}`);
+              Log.debug(LOG_PREFIX + `comparing ${album.albumName} to ${config.albumName}`);
               if (album.albumName === config.albumName) {
-                Log.info(LOG_PREFIX + 'match found');
+                Log.debug(LOG_PREFIX + 'match found');
                 albumId = album.id;
                 break;
               }
@@ -231,7 +231,7 @@ module.exports = NodeHelper.create({
       }
       // Only proceed if we have an albumId
       if (albumId) {
-        Log.info(LOG_PREFIX + 'fetching pictures from album', albumId);
+        Log.debug(LOG_PREFIX + 'fetching pictures from album', albumId);
         // Get the pictures from the album
         try {
           response = await this.http.get(`/album/${albumId}`, {responseType: 'json'});
@@ -258,7 +258,7 @@ module.exports = NodeHelper.create({
       today.setMinutes(0);
       today.setSeconds(0);
       today.setMilliseconds(0);
-      Log.info(LOG_PREFIX + 'numDaysToInclude: ', config.numDaysToInclude);
+      Log.debug(LOG_PREFIX + 'numDaysToInclude: ', config.numDaysToInclude);
       for (let i=0; i < config.numDaysToInclude; i++) {
         // as of version 1.82, the API for memory lane has changed.
         let mlParams = {
@@ -270,14 +270,14 @@ module.exports = NodeHelper.create({
             month: today.getMonth()+1
           }
         }
-        Log.info(LOG_PREFIX + 'fetching images for: ', today.toISOString());
+        Log.debug(LOG_PREFIX + 'fetching images for: ', today.toISOString());
         try{
           response = await this.http.get('/asset/memory-lane', {params: mlParams, responseType: 'json'});
-          // Log.info(LOG_PREFIX + 'response', today.toISOString(), response.data.length);
+          // Log.debug(LOG_PREFIX + 'response', today.toISOString(), response.data.length);
           if (response.status === 200) {
             response.data.forEach(memory => {
               this.imageList = memory.assets.concat(this.imageList);
-              // Log.info(LOG_PREFIX + 'imageList', today.toISOString(), this.imageList.length);
+              // Log.debug(LOG_PREFIX + 'imageList', today.toISOString(), this.imageList.length);
             });
           } else {
             Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
@@ -293,9 +293,9 @@ module.exports = NodeHelper.create({
 
     // Now loop through and remove any movies
     if (this.imageList.length > 0) {
-      Log.info(LOG_PREFIX + 'Filtering image list for valid image extensions...');
+      Log.debug(LOG_PREFIX + 'Filtering image list for valid image extensions...');
       this.imageList = this.imageList.filter(element => {
-        // Log.info(LOG_PREFIX + 'Filtering element', element);
+        // Log.debug(LOG_PREFIX + 'Filtering element', element);
         return this.checkValidImageFileExtension(element.originalPath);
       });
     }
@@ -303,7 +303,7 @@ module.exports = NodeHelper.create({
     // Now sort them according to config
     this.imageList = this.sortImageList(this.imageList, config.sortImagesBy, config.sortImagesDescending);
 
-    Log.info(LOG_PREFIX + this.imageList.length + ' images found');
+    Log.debug(LOG_PREFIX + this.imageList.length + ' images found');
     if (this.index < 0 || this.index >= this.imageList.length) {
       //Set this index back to zero only if necessary
       this.index = 0;
@@ -324,7 +324,7 @@ module.exports = NodeHelper.create({
   },
 
   displayImage: async function(showCurrent = false) {
-    Log.info(LOG_PREFIX + 'displayImage called', showCurrent, this.lastImageLoaded ? 'has last image' : 'no last image');
+    Log.debug(LOG_PREFIX + 'displayImage called', showCurrent, this.lastImageLoaded ? 'has last image' : 'no last image');
     if (showCurrent && this.lastImageLoaded) {
       // Just send the current image
       this.sendSocketNotification(
@@ -336,7 +336,7 @@ module.exports = NodeHelper.create({
 
     // if there are no images or all the images have been displayed or it is the next day, try loading the images again
     if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
-      Log.info(LOG_PREFIX + 'image list is empty or index out of range or list too old!  fetching new image list...');
+      Log.debug(LOG_PREFIX + 'image list is empty or index out of range or list too old!  fetching new image list...');
       // Force the index to 0 so that we start from the beginning
       // and calling this function again will not get stuck in a loop
       if (this.index >= this.imageList.length) {
@@ -347,9 +347,9 @@ module.exports = NodeHelper.create({
       this.gatherImageList(this.config);
       return;
     }
-    // Log.info(LOG_PREFIX + 'image list', this.imageList.length, this.imageList);
+    // Log.debug(LOG_PREFIX + 'image list', this.imageList.length, this.imageList);
     if (!this.imageList.length) {
-      Log.info(LOG_PREFIX + 'image list is empty!  setting timeout for next image...');
+      Log.debug(LOG_PREFIX + 'image list is empty!  setting timeout for next image...');
       // still no images, search again after 5 mins
       setTimeout(() => {
         this.displayImage();
@@ -359,7 +359,7 @@ module.exports = NodeHelper.create({
 
     let image = this.imageList[this.index];
 
-    Log.info(LOG_PREFIX + 'reading image "' + image.originalPath + '"');
+    Log.debug(LOG_PREFIX + 'reading image "' + image.originalPath + '"');
     
     this.lastImageLoaded = {
       identifier: this.config.identifier,
@@ -372,8 +372,10 @@ module.exports = NodeHelper.create({
       total: this.imageList.length
     };
 
-    // If there is no exif info available, then fetch it with a separate call based on the API version
-    if (!image.exifInfo) {
+    // If there is no exif info available, or if we need people but no people are listed
+    // then fetch it with a separate call based on the API version
+    if (!image.exifInfo || image.exifInfo.length == 0 || 
+      this.config.imageInfo.includes('people') && (!image.people || image.people.length == 0)) {
       let assetUrl = '/asset/assetById';
       if (this.apiLevel === API_LEVEL_1_94) {
         assetUrl = '/asset';
@@ -381,13 +383,12 @@ module.exports = NodeHelper.create({
       try {
         const exifResponse = await this.http.get(`${assetUrl}/${image.id}`, { responseType: 'json' });
         if (exifResponse.status === 200) {
-          this.lastImageLoaded.exifInfo = exifResponse.data.exifInfo;
-          this.lastImageLoaded.people = exifResponse.data.people;
+          this.lastImageLoaded.exifInfo = exifResponse.data.exifInfo || [];
+          this.lastImageLoaded.people = exifResponse.data.people || [];
         }
       } catch (e) {
         Log.error(LOG_PREFIX + 'Oops!  Exception while fetching image metadata', e.message);
       }
-
     }
 
     let self = this;
@@ -398,7 +399,7 @@ module.exports = NodeHelper.create({
         const imageBuffer = Buffer.from(response.data, 'binary');
         if (imageBuffer) {
           if (image.originalPath.toLowerCase().endsWith('heic') && this.apiLevel !== API_LEVEL_1_94) {
-            Log.info(LOG_PREFIX + ' converting HEIC to JPG..');
+            Log.debug(LOG_PREFIX + ' converting HEIC to JPG..');
             // convert the main image to jpeg
             this.lastImageLoaded.data = (await convert({
               buffer: imageBuffer,                                  // the HEIC file buffer
@@ -424,7 +425,7 @@ module.exports = NodeHelper.create({
   },
 
   getNextImage: function (showCurrent = false, reloadOnLoop = false) {
-    Log.info(LOG_PREFIX + 'Current Image: ', this.index+1, ' of ', this.imageList.length, '. Getting next image...', showCurrent, reloadOnLoop);
+    Log.debug(LOG_PREFIX + 'Current Image: ', this.index+1, ' of ', this.imageList.length, '. Getting next image...', showCurrent, reloadOnLoop);
     
     if (!showCurrent) {
       this.index++;
@@ -438,13 +439,13 @@ module.exports = NodeHelper.create({
   },
 
   getPrevImage: function () {
-    Log.info('Moving to previous image', this.index, this.imageList.length);
+    Log.debug('Moving to previous image', this.index, this.imageList.length);
     // get to previous image index.
     this.index--;
 
     // Case of first image, go to end of array.
     if (this.index < 0) {
-      Log.info('Reaching beginning of pictures! looping around...')
+      Log.debug('Reaching beginning of pictures! looping around...')
       this.index = this.imageList.length-1;
     }
     this.displayImage();
@@ -468,9 +469,9 @@ module.exports = NodeHelper.create({
   // },
 
   resume: function() {
-    Log.info(LOG_PREFIX + 'Resume called!');
+    Log.debug(LOG_PREFIX + 'Resume called!');
     if (!this.timer) {
-      Log.info(LOG_PREFIX + 'Resuming...', this.config.slideshowSpeed);
+      Log.debug(LOG_PREFIX + 'Resuming...', this.config.slideshowSpeed);
       this.timer = setInterval(() => {
         this.getNextImage(false, true);
       }, this.config.slideshowSpeed);
@@ -479,7 +480,7 @@ module.exports = NodeHelper.create({
   },
 
   suspend: function() {
-    Log.info(LOG_PREFIX + 'Suspending...');
+    Log.debug(LOG_PREFIX + 'Suspending...');
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
@@ -488,11 +489,11 @@ module.exports = NodeHelper.create({
 
   // subclass socketNotificationReceived, received notification from module
   socketNotificationReceived: function (notification, payload) {
-    Log.info(LOG_PREFIX + 'socketNotificationReceived:', notification); //, payload);
+    Log.debug(LOG_PREFIX + 'socketNotificationReceived:', notification); //, payload);
     if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
-      // Log.info(LOG_PREFIX + 'Current config loaded?', !this.config, this.config);
+      // Log.debug(LOG_PREFIX + 'Current config loaded?', !this.config, this.config);
       if (!this.config) { // Only initialize if we have not initialized already
-        // Log.info(LOG_PREFIX + 'Initializing config...');
+        // Log.debug(LOG_PREFIX + 'Initializing config...');
         this.suspend();
         const config = payload;
 
@@ -523,9 +524,9 @@ module.exports = NodeHelper.create({
       // Suspend
       this.suspend();
     } else if (!notification.startsWith('IMMICHSLIDESHOW')) {
-      Log.info(LOG_PREFIX + 'Notification is unexpected and not handled!');
+      Log.debug(LOG_PREFIX + 'Notification is unexpected and not handled!');
     }
-    Log.info(LOG_PREFIX + 'Notification Processed!');
+    Log.debug(LOG_PREFIX + 'Notification Processed!');
   }
 });
 
