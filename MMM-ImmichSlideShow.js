@@ -149,12 +149,12 @@ Module.register('MMM-ImmichSlideShow', {
     }
 
     //validate imageinfo property.  This will make sure we have at least 1 valid value
-    const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bgeo\b|\bpeople\b/gi;
+    const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bgeo\b|\bpeople\b|\bage\b/gi;
+    let setToDefault = false;
     if (
       this.config.showImageInfo &&
       Array.isArray(this.config.imageInfo)
     ) {
-      let setToDefault = false;
       for (const [i, infoItem] of Object.entries(this.config.imageInfo)) {
         
         if (!imageInfoRegex.test(this.config.imageInfo)) {
@@ -164,13 +164,6 @@ Module.register('MMM-ImmichSlideShow', {
           this.config.imageInfo[i] = this.config.imageInfo[i].trim().toLowerCase();
         }
       }
-      if (setToDefault) {
-        Log.warn(
-          LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
-        );
-        // Use name as the default
-        this.config.imageInfo = ['date'];
-      }
     } else if (
       this.config.showImageInfo &&
       !imageInfoRegex.test(this.config.imageInfo)
@@ -178,8 +171,7 @@ Module.register('MMM-ImmichSlideShow', {
       Log.warn(
         LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
       );
-      // Use name as the default
-      this.config.imageInfo = ['date'];
+      setToDefault = true;
     } else {
       // convert to lower case and replace any spaces with , to make sure we get an array back
       // even if the user provided space separated values
@@ -189,6 +181,20 @@ Module.register('MMM-ImmichSlideShow', {
         .split(',');
       // now filter the array to only those that have values
       this.config.imageInfo = this.config.imageInfo.filter((n) => n);
+    }
+    // The imageInfo params had invalid values in them
+    if (setToDefault) {
+      Log.warn(
+        LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
+      );
+      // Use name as the default
+      this.config.imageInfo = ['date'];
+    } else if (this.config.imageInfo.includes('age') && !this.config.imageInfo.includes('people')) {
+      Log.warn(
+        LOG_PREFIX + 'imageInfo includes age but not people.  Removing age from imageInfo!'
+      );
+      // Remove age since people is not included
+      this.config.imageInfo = this.config.imageInfo.filter((n) => n !== 'age');
     }
 
     if (!this.config.transitionImages) {
@@ -590,12 +596,18 @@ Module.register('MMM-ImmichSlideShow', {
                 peopleName += ', ';
               }
               peopleName += people.name || '';
+              if (people.birthDate && this.config.imageInfo.includes('age')) {
+                peopleName += `(${this.getAgeFromDate(people.birthDate, imageDate)})`
+              }
+              
             })
             // Remove file extension from image name.
             if (peopleName.length > 0) {
               imageProps.push(peopleName);
             }
           }
+          break;
+        case 'age': // show people's in images
           break;
         default:
           Log.warn(
@@ -642,5 +654,23 @@ Module.register('MMM-ImmichSlideShow', {
       'IMMICHSLIDESHOW_REGISTER_CONFIG',
       this.config
     );
+  },
+
+  getAgeFromDate: function (dateString, imageDate) {
+    var today = imageDate || moment();
+    var birthDate = moment(dateString);
+    var duration = moment.duration(today.diff(birthDate));
+    var y = duration.asYears();
+    var m = duration.asMonths();
+    var d = duration.asDays();
+
+    if (y >= 1) {
+      age = Math.floor(y);
+    } else if (m >= 1) {
+      age = `${Math.floor(m)}m`
+    } else {
+      age = `${Math.floor(d)}d`
+    }
+    return age;
   }
 });
