@@ -206,7 +206,7 @@ module.exports = NodeHelper.create({
       // If we have albumName but no albumId, then get the albumId
       if (config.albumName && !config.albumId) {
         try {
-          response = await this.http.get('/album', {responseType: 'json'});
+          response = await this.http.get('/albums', {responseType: 'json'});
           if (response.status === 200) {
             // Loop through the albums to find the right now
             for (let i=0; i < response.data.length; i++) {
@@ -234,7 +234,7 @@ module.exports = NodeHelper.create({
         Log.debug(LOG_PREFIX + 'fetching pictures from album', albumId);
         // Get the pictures from the album
         try {
-          response = await this.http.get(`/album/${albumId}`, {responseType: 'json'});
+          response = await this.http.get(`/albums/${albumId}`, {responseType: 'json'});
           if (response.status === 200) {
             this.imageList = [...response.data.assets];
           } else {
@@ -272,7 +272,7 @@ module.exports = NodeHelper.create({
         }
         Log.debug(LOG_PREFIX + 'fetching images for: ', today.toISOString());
         try{
-          response = await this.http.get('/asset/memory-lane', {params: mlParams, responseType: 'json'});
+          response = await this.http.get('/assets/memory-lane', {params: mlParams, responseType: 'json'});
           // Log.debug(LOG_PREFIX + 'response', today.toISOString(), response.data.length);
           if (response.status === 200) {
             response.data.forEach(memory => {
@@ -376,9 +376,9 @@ module.exports = NodeHelper.create({
     // then fetch it with a separate call based on the API version
     if (!image.exifInfo || image.exifInfo.length == 0 || 
       this.config.imageInfo.includes('people') && (!image.people || image.people.length == 0)) {
-      let assetUrl = '/asset/assetById';
+      let assetUrl = '/assets/assetById';
       if (this.apiLevel === API_LEVEL_1_94) {
-        assetUrl = '/asset';
+        assetUrl = '/assets';
       }
       try {
         const exifResponse = await this.http.get(`${assetUrl}/${image.id}`, { responseType: 'json' });
@@ -392,7 +392,7 @@ module.exports = NodeHelper.create({
     }
 
     let self = this;
-    this.http.get(`/asset/file/${image.id}?isWeb=true`, {
+    this.http.get(`/assets/${image.id}/original?isWeb=true`, {
       responseType: 'arraybuffer'
     }).then(async(response) => {
       try {
