@@ -11,6 +11,7 @@
  * Module MMM-Slideshow By Darick Carpenter
  * MIT Licensed.
  */
+// const Log = console;
 const LOG_PREFIX = 'MMM-ImmichSlideShow :: module :: ';
 const MODE_MEMORY = 'memory';
 const MODE_ALBUM = 'album';
@@ -42,7 +43,7 @@ Module.register('MMM-ImmichSlideShow', {
     // whether to sort in ascending (default) or descending order
     sortImagesDescending: false,
     // list of valid file extensions, separated by commas
-    validImageFileExtensions: 'bmp,jpg,jpeg,gif,png',
+    validImageFileExtensions: 'bmp,jpg,jpeg,gif,png,heic',
     // show a panel containing information about the image currently displayed.
     showImageInfo: false,
     // The compression level of the resulting jpeg
@@ -151,8 +152,8 @@ Module.register('MMM-ImmichSlideShow', {
     //validate imageinfo property.  This will make sure we have at least 1 valid value
     const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bgeo\b|\bpeople\b|\bage\b/gi;
     let setToDefault = false;
+    
     if (
-      this.config.showImageInfo &&
       Array.isArray(this.config.imageInfo)
     ) {
       for (const [i, infoItem] of Object.entries(this.config.imageInfo)) {
@@ -164,10 +165,7 @@ Module.register('MMM-ImmichSlideShow', {
           this.config.imageInfo[i] = this.config.imageInfo[i].trim().toLowerCase();
         }
       }
-    } else if (
-      this.config.showImageInfo &&
-      !imageInfoRegex.test(this.config.imageInfo)
-    ) {
+    } else if (!imageInfoRegex.test(this.config.imageInfo)) {
       Log.warn(
         LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
       );
@@ -184,9 +182,6 @@ Module.register('MMM-ImmichSlideShow', {
     }
     // The imageInfo params had invalid values in them
     if (setToDefault) {
-      Log.warn(
-        LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
-      );
       // Use name as the default
       this.config.imageInfo = ['date'];
     } else if (this.config.imageInfo.includes('age') && !this.config.imageInfo.includes('people')) {
@@ -324,7 +319,7 @@ Module.register('MMM-ImmichSlideShow', {
     } else if (notification === 'IMMICHSLIDESHOW_DISPLAY_IMAGE') {
       // check this is for this module based on the id
       if (payload.identifier === this.identifier) {
-        Log.debug(LOG_PREFIX + 'Displaying current image', payload);
+        Log.debug(LOG_PREFIX + 'Displaying current image', payload.path);
         this.displayImage(payload);
       }
     } else if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
@@ -509,7 +504,7 @@ Module.register('MMM-ImmichSlideShow', {
       this.imagesDiv.appendChild(transitionDiv);
     };
 
-    image.src = 'data:image/jpeg;base64, ' + imageInfo.data;
+    image.src = imageInfo.data;
     this.sendNotification('IMMICHSLIDESHOW_IMAGE_UPDATED', {
       url: imageInfo.path
     });

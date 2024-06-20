@@ -1,12 +1,10 @@
 {
   "name": "mmm-immichslideshow",
-  "version": "0.9.0",
-  "description": "",
-  "author": "",
+  "version": "0.10.0",
+  "description": "A plugin for MagicMirror2 to show slideshows from Immich",
+  "author": "Pelaxa Inc.",
   "license": "MIT",
   "dependencies": {
-    "jpeg-autorotate": "^9.0.0",
-    "axios": "1.7.1",
-    "heic-convert": "2.1.0"
+    "axios": "1.7.2"
   }
 }
