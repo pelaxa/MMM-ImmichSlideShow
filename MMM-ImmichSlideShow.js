@@ -26,6 +26,8 @@ Module.register('MMM-ImmichSlideShow', {
     apiKey: 'provide your API KEY',
     // Base Immich URL.  /api will be appended to this URL to make API calls.
     immichUrl: 'provide your base Immich URL',
+    // The amount of timeout for immich API calls
+    immichTimeout: 6000,
     // Mode of operation: 
     //    memory = show recent photos.  requires numDaystoInclude
     //    album = show picture from album.  requires albumId/albumName
@@ -624,8 +626,12 @@ Module.register('MMM-ImmichSlideShow', {
   suspend: function () {
     Log.debug(LOG_PREFIX + 'Suspend called...');
     // Hide the progress while paused
-    const oldDiv = document.getElementsByClassName('progress-inner')[0];
-    oldDiv.style.display = 'none';
+    if (this.config.showProgressBar) {
+      const oldDiv = document.getElementsByClassName('progress-inner')[0];
+      if (oldDiv) {
+        oldDiv.style.display = 'none';
+      }
+    }
 
     this.sendSocketNotification(
       'IMMICHSLIDESHOW_SUSPEND'

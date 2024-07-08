@@ -34,7 +34,7 @@ const immichApi = {
             // create and axis instance
             this.http = axios.create({
               baseURL: config.immichUrl + this.baseUrl,
-              timeout: 5000,
+              timeout: config.immichTimeout,
               headers: {
                 'x-api-key': config.apiKey,
                 'Accept': 'application/json'

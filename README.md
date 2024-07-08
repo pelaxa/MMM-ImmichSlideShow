@@ -133,6 +133,14 @@ The following properties can be configured:
 			</td>
 		</tr>
 		<tr>
+			<td><code>immichTimeout</code></td>
+			<td>The timeout for Immich API calls in milliseconds.<br>
+				<br><b>Example:</b> <code>10000</code>
+				<br><b>Default value:</b> <code>6000</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+		<tr>
 			<td><code>mode</code></td>
 			<td>The mode of operation for the module.  Valid options are 'memory' or 'album' and depending on which is chosen, additional settings are required.<br>
 				<br><b>Example:</b> <code>memory</code> for memory mode

@@ -203,70 +203,69 @@ module.exports = NodeHelper.create({
 
   displayImage: async function(showCurrent = false) {
     Log.debug(LOG_PREFIX + 'displayImage called', showCurrent, this.lastImageLoaded ? 'has last image' : 'no last image');
-    if (showCurrent && this.lastImageLoaded) {
-      // Just send the current image
+    
+    // If we are not showing the current image, then fetch the next one.
+    if (!(showCurrent && this.lastImageLoaded)) {
+      
+      // if there are no images or all the images have been displayed or it is the next day, try loading the images again
+      if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
+        Log.debug(LOG_PREFIX + 'image list is empty or index out of range or list too old!  fetching new image list...');
+        // Force the index to 0 so that we start from the beginning
+        // and calling this function again will not get stuck in a loop
+        if (this.index >= this.imageList.length) {
+          this.index = 0;
+        }
+        // Set the last Image to null so we cannot load it and have to progress
+        this.lastImageLoaded = null;
+        this.gatherImageList(this.config);
+        return;
+      }
+
+      // If still do not have images, just call this function in 5 min
+      if (!this.imageList.length) {
+        Log.debug(LOG_PREFIX + 'image list is empty!  setting timeout for next image...');
+        // still no images, search again after 5 mins
+        setTimeout(() => {
+          this.displayImage();
+        }, 300000);
+        return;
+      }
+
+      let image = this.imageList[this.index];
+
+      Log.debug(LOG_PREFIX + 'reading image "' + image.originalPath + '"');
+      
+      this.lastImageLoaded = {
+        identifier: this.config.identifier,
+        path: image.originalPath,
+        exifInfo: image.exifInfo || {},
+        people: [],
+        data: null,
+        imageId: image.id,
+        index: this.index+1, // Index is zero based
+        total: this.imageList.length
+      };
+
+      // If there is no exif info available, or if we need people but no people are listed
+      // then fetch it with a separate call based on the API version
+      if (!image.exifInfo || image.exifInfo.length == 0 || 
+        this.config.imageInfo.includes('people') && (!image.people || image.people.length == 0)) {
+        const assetInfo = await immichApi.getAssetInfo(image.id);
+        if (assetInfo) {
+          this.lastImageLoaded.exifInfo = assetInfo.exifInfo;
+          this.lastImageLoaded.people = assetInfo.people;
+        }
+      }
+      this.lastImageLoaded.data = await immichApi.getBase64EncodedAsset(image.id);
+    }
+
+    // Only send a notification if we have the new image loaded
+    if (this.lastImageLoaded.data) {
       this.sendSocketNotification(
         'IMMICHSLIDESHOW_DISPLAY_IMAGE',
         this.lastImageLoaded
       );
-      return;
     }
-
-    // if there are no images or all the images have been displayed or it is the next day, try loading the images again
-    if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
-      Log.debug(LOG_PREFIX + 'image list is empty or index out of range or list too old!  fetching new image list...');
-      // Force the index to 0 so that we start from the beginning
-      // and calling this function again will not get stuck in a loop
-      if (this.index >= this.imageList.length) {
-        this.index = 0;
-      }
-      // Set the last Image to null so we cannot load it and have to progress
-      this.lastImageLoaded = null;
-      this.gatherImageList(this.config);
-      return;
-    }
-    // Log.debug(LOG_PREFIX + 'image list', this.imageList.length, this.imageList);
-    if (!this.imageList.length) {
-      Log.debug(LOG_PREFIX + 'image list is empty!  setting timeout for next image...');
-      // still no images, search again after 5 mins
-      setTimeout(() => {
-        this.displayImage();
-      }, 300000);
-      return;
-    }
-
-    let image = this.imageList[this.index];
-
-    Log.debug(LOG_PREFIX + 'reading image "' + image.originalPath + '"');
-    
-    this.lastImageLoaded = {
-      identifier: this.config.identifier,
-      path: image.originalPath,
-      exifInfo: image.exifInfo || {},
-      people: [],
-      data: null,
-      imageId: image.id,
-      index: this.index+1, // Index is zero based
-      total: this.imageList.length
-    };
-
-    // If there is no exif info available, or if we need people but no people are listed
-    // then fetch it with a separate call based on the API version
-    if (!image.exifInfo || image.exifInfo.length == 0 || 
-      this.config.imageInfo.includes('people') && (!image.people || image.people.length == 0)) {
-      const assetInfo = await immichApi.getAssetInfo(image.id);
-      if (assetInfo) {
-        this.lastImageLoaded.exifInfo = assetInfo.exifInfo;
-        this.lastImageLoaded.people = assetInfo.people;
-      }
-    }
-
-    this.lastImageLoaded.data = await immichApi.getBase64EncodedAsset(image.id);
-
-    this.sendSocketNotification(
-      'IMMICHSLIDESHOW_DISPLAY_IMAGE',
-      this.lastImageLoaded
-    );
   },
 
   getNextImage: function (showCurrent = false, reloadOnLoop = false) {
