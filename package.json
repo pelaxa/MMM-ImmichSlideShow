@@ -1,6 +1,6 @@
 {
   "name": "mmm-immichslideshow",
-  "version": "0.10.1",
+  "version": "1.0.0",
   "description": "A plugin for MagicMirror2 to show slideshows from Immich",
   "author": "Pelaxa Inc.",
   "license": "MIT",

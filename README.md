@@ -18,6 +18,8 @@ This module will require the URL of your Immich instance and your API Key at a m
 
 Extra configurations include setting the amount of time an image is shown for, selecting which file extensions are valid, the transition speed from one image to another, the background sizing, and whether or not to animate the transition from one to the other.
 
+**Note:**  This module attempts to sync all of its clients (i.e. display the same image on all clients), so the images are pushed from the server to the client.  Version 1.0.0+ ensures that if the server is restarted, the clients connect back.
+
 ## Using the module
 
 Use Git to download. Make sure Git is installed on your system. In the command line/terminal, go to the modules directory of the your Magic Mirror install. run: `git clone https://github.com/pelaxa/MMM-ImmichSlideShow.git`. The advantage of using Git is when there is an update, you can run `git pull` and it will pull down all the updates. Magic Mirror can even let you know when there are updates.

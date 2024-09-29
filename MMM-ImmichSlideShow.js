@@ -315,13 +315,23 @@ Module.register('MMM-ImmichSlideShow', {
       }
     } else if (notification === 'IMMICHSLIDESHOW_FILELIST') {
       // bubble up filelist notifications
-      // this.sendSocketNotification('IMMICHSLIDESHOW_FILELIST', payload);
       this.imageList = payload;
       // Log.debug (LOG_PREFIX + " >>>>>>>>>>>>>>> IMAGE LIST", JSON.stringify(payload));
     } else if (notification === 'IMMICHSLIDESHOW_DISPLAY_IMAGE') {
       // check this is for this module based on the id
       if (payload.identifier === this.identifier) {
         Log.debug(LOG_PREFIX + 'Displaying current image', payload.path);
+        // Create an interval timer that if not called will attempt to establish configuration again.
+        // Apparently, the socket will keep retrying until it connects, so we only need to reattempt once.
+        if (!!this.resyncTimeout) {
+          console.log('this.resyncTimeout', this.resyncTimeout);
+          clearTimeout(this.resyncTimeout);
+        }
+        const me = this;
+        this.resyncTimeout = setTimeout(() => {
+          console.log('Re-registering to make sure images change...')
+          me.updateImageList();
+        }, me.config.slideshowSpeed+me.config.immichTimeout);
         this.displayImage(payload);
       }
     } else if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
