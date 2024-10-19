@@ -12,20 +12,31 @@ const immichApi = {
             albumInfo: '/album/{id}',
             memoryLane: '/asset/memory-lane',
             assetInfo: '/asset/{id}',
-            assetDownload: '/asset/file/{id}?isWeb=true'
+            assetDownload: '/asset/file/{id}?isWeb=true',
+            serverInfoUrl: '/server-info/version'
         },
         v1_106: {
+            previousVersion: 'v1_94',
             albums: '/albums',
             albumInfo: '/albums/{id}',
             memoryLane: '/assets/memory-lane',
             assetInfo: '/assets/{id}',
-            assetDownload: '/assets/{id}/thumbnail?size=preview'
+            assetDownload: '/assets/{id}/thumbnail?size=preview',
+            serverInfoUrl: '/server-info/version'
+        },
+        v1_118: {
+            previousVersion: 'v1_106',
+            albums: '/albums',
+            albumInfo: '/albums/{id}',
+            memoryLane: '/assets/memory-lane',
+            assetInfo: '/assets/{id}',
+            assetDownload: '/assets/{id}/thumbnail?size=preview',
+            serverInfoUrl: '/server/version'
         }
     },
 
-    apiLevel: 'v1_94',
+    apiLevel: 'v1_118',
     baseUrl: '/api',
-    serverInfoUrl: '/server-info/version',
     http: null,
 
     init: async function(config) {
@@ -35,6 +46,9 @@ const immichApi = {
             this.http = axios.create({
               baseURL: config.immichUrl + this.baseUrl,
               timeout: config.immichTimeout,
+              validateStatus: function (status) {
+                return status >= 200 && status < 499; // default
+              },
               headers: {
                 'x-api-key': config.apiKey,
                 'Accept': 'application/json'
@@ -54,22 +68,42 @@ const immichApi = {
 
             // Now get the version of the server
             //determine the server version first
-            let serverVersion = {major:1, minor:94, patch:0};
+            let serverVersion = {major:-1, minor:-1, patch:-1};
             try {
                 Log.debug(LOG_PREFIX + 'fetching server version...');
-                response = await this.http.get(this.serverInfoUrl, {params: {}, responseType: 'json'});
+                let response = await this.http.get(this.apiUrls[this.apiLevel]['serverInfoUrl'], {params: {}, responseType: 'json'});
                 if (response.status === 200) {
                     serverVersion = response.data;
                 } else {
-                    Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+                    // We could be dealing with an older version of immich
+                    let serverVersionFound = false;
+                    while (!serverVersionFound && !!this.apiUrls[this.apiLevel]['previousVersion']) {
+                        this.apiLevel = this.apiUrls[this.apiLevel]['previousVersion'];
+                        Log.debug(LOG_PREFIX + `fetching server version (${this.apiLevel})...`);
+                        response = await this.http.get(this.apiUrls[this.apiLevel]['serverInfoUrl'], {params: {}, responseType: 'json'});
+                        if (response.status === 200) {
+                            serverVersion = response.data;
+                            serverVersionFound = true;
+                        }
+                    }
+                    if (!serverVersionFound) {
+                        Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+                    }
                 }
             } catch(e) {
                 Log.error(LOG_PREFIX + 'Oops!  Exception while fetching server version', e.message);
             }
             
-            if (serverVersion.major > 1 ||
-            (serverVersion.major === 1 && serverVersion.minor >= 106)) {
-                this.apiLevel = 'v1_106';
+            if (serverVersion.major > -1) {
+                if (serverVersion.major === 1) {
+                    if (serverVersion.minor >= 106 && serverVersion.minor < 118 ) {
+                        this.apiLevel = 'v1_106';
+                    } else if (serverVersion.minor < 106 ) {
+                        this.apiLevel = 'v1_94';
+                    }
+                }
+            } else {
+                throw('Failed to get Immich version.  Cannot proceed.');
             }
 
             Log.debug(LOG_PREFIX + 'Server Version is', this.apiLevel, JSON.stringify(serverVersion));
@@ -79,7 +113,7 @@ const immichApi = {
     findAlbumId: async function (albumName) {
         let albumId = null;
         try {
-            response = await this.http.get(this.apiUrls[this.apiLevel]['albums'], {responseType: 'json'});
+            const response = await this.http.get(this.apiUrls[this.apiLevel]['albums'], {responseType: 'json'});
             if (response.status === 200) {
                 // Loop through the albums to find the right now
                 for (let i=0; i < response.data.length; i++) {
@@ -108,7 +142,7 @@ const immichApi = {
     getAlbumAssets: async function (albumId) {
         let imageList = [];
         try {
-            response = await this.http.get(this.apiUrls[this.apiLevel]['albumInfo'].replace('{id}',albumId), {responseType: 'json'});
+            const response = await this.http.get(this.apiUrls[this.apiLevel]['albumInfo'].replace('{id}',albumId), {responseType: 'json'});
             if (response.status === 200) {
                 imageList = [...response.data.assets];
             } else {
@@ -144,7 +178,7 @@ const immichApi = {
             
             Log.debug(LOG_PREFIX + 'fetching images for: ', today.toISOString());
             try{
-                response = await this.http.get(this.apiUrls[this.apiLevel]['memoryLane'], {params: mlParams, responseType: 'json'});
+                const response = await this.http.get(this.apiUrls[this.apiLevel]['memoryLane'], {params: mlParams, responseType: 'json'});
                 // Log.debug(LOG_PREFIX + 'response', today.toISOString(), response.data.length);
                 if (response.status === 200) {
                     response.data.forEach(memory => {
