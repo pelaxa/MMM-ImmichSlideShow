@@ -13,7 +13,8 @@ const immichApi = {
             memoryLane: '/asset/memory-lane',
             assetInfo: '/asset/{id}',
             assetDownload: '/asset/file/{id}?isWeb=true',
-            serverInfoUrl: '/server-info/version'
+            serverInfoUrl: '/server-info/version',
+            search: 'NOT SUPPORTED'
         },
         v1_106: {
             previousVersion: 'v1_94',
@@ -22,7 +23,8 @@ const immichApi = {
             memoryLane: '/assets/memory-lane',
             assetInfo: '/assets/{id}',
             assetDownload: '/assets/{id}/thumbnail?size=preview',
-            serverInfoUrl: '/server-info/version'
+            serverInfoUrl: '/server-info/version',
+            search: 'NOT SUPPORTED'
         },
         v1_118: {
             previousVersion: 'v1_106',
@@ -31,7 +33,8 @@ const immichApi = {
             memoryLane: '/assets/memory-lane',
             assetInfo: '/assets/{id}',
             assetDownload: '/assets/{id}/thumbnail?size=preview',
-            serverInfoUrl: '/server/version'
+            serverInfoUrl: '/server/version',
+            search: '/search/smart'
         }
     },
 
@@ -39,13 +42,13 @@ const immichApi = {
     baseUrl: '/api',
     http: null,
 
-    init: async function(config) {
+    init: async function(config, force) {
 
-        if (this.http === null) {
+        if (this.http === null || force) {
             // create and axis instance
             this.http = axios.create({
-              baseURL: config.immichUrl + this.baseUrl,
-              timeout: config.immichTimeout,
+              baseURL: config.url + this.baseUrl,
+              timeout: config.timeout,
               validateStatus: function (status) {
                 return status >= 200 && status < 499; // default
               },

@@ -128,10 +128,11 @@
 .MMM-ImmichSlideShow .info {
   display: inline-block;
   padding: 15px;
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.4);
   font-family: 'Roboto Condensed', sans-serif;
   font-weight: 400;
   font-size: 20px;
+  text-shadow: 0 0 4px #000;
   line-height: 25px;
   position: absolute;
 }

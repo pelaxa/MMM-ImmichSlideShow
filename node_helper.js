@@ -130,30 +130,30 @@ module.exports = NodeHelper.create({
   },
 
   // gathers the image list
-  gatherImageList: async function (config) {
+  gatherImageList: async function (config, isActiveConfigChange) {
     // Invalid config. retrieve it again
     if (config === undefined) {
       this.sendSocketNotification('IMMICHSLIDESHOW_REGISTER_CONFIG');
       return;
     }
-
-    await immichApi.init(config);
+    Log.debug(LOG_PREFIX + 'GOT new active config', this.config.activeImmichConfig);
+    await immichApi.init(config.activeImmichConfig, isActiveConfigChange);
    
     // create an empty main image list
     this.imageList = [];
 
     // we default albumId to the config value and override below if albumName is provided
-    let albumId = config.albumId;
+    let albumId = config.activeImmichConfig.albumId;
 
     // Get today's date at midnight
     let today = (new Date());
     this.pictureDate = new Date(today.getTime());
 
     // First check to see what mode we are operating in
-    if (config.mode === 'album') {
+    if (config.activeImmichConfig.mode === 'album') {
       // If we have albumName but no albumId, then get the albumId
-      if (config.albumName && !config.albumId) {
-        albumId = await immichApi.findAlbumId(config.albumName);
+      if (config.activeImmichConfig.albumName && !config.activeImmichConfig.albumId) {
+        albumId = await immichApi.findAlbumId(config.activeImmichConfig.albumName);
       }
       // Only proceed if we have an albumId
       if (albumId) {
@@ -165,7 +165,7 @@ module.exports = NodeHelper.create({
       }
     } else {
       // Assume we are in memory mode
-      this.imageList = await immichApi.getMemoryLaneAssets(config.numDaysToInclude);
+      this.imageList = await immichApi.getMemoryLaneAssets(config.activeImmichConfig.numDaysToInclude);
     }
 
     // Now loop through and remove any movies
@@ -178,7 +178,7 @@ module.exports = NodeHelper.create({
       });
 
       // Now sort them according to config
-      this.imageList = this.sortImageList(this.imageList, config.sortImagesBy, config.sortImagesDescending);
+      this.imageList = this.sortImageList(this.imageList, config.activeImmichConfig.sortImagesBy, config.activeImmichConfig.sortImagesDescending);
 
       Log.debug(LOG_PREFIX + this.imageList.length + ' images found');
       if (this.index < 0 || this.index >= this.imageList.length) {
@@ -202,7 +202,7 @@ module.exports = NodeHelper.create({
   },
 
   displayImage: async function(showCurrent = false) {
-    Log.debug(LOG_PREFIX + 'displayImage called', showCurrent, this.lastImageLoaded ? 'has last image' : 'no last image');
+    Log.debug(LOG_PREFIX + 'displayImage called. Show current?', showCurrent, this.lastImageLoaded ? 'last image is in memory' : 'last image is not in memory');
     
     // If we are not showing the current image, then fetch the next one.
     if (!(showCurrent && this.lastImageLoaded)) {
@@ -249,7 +249,7 @@ module.exports = NodeHelper.create({
       // If there is no exif info available, or if we need people but no people are listed
       // then fetch it with a separate call based on the API version
       if (!image.exifInfo || image.exifInfo.length == 0 || 
-        this.config.imageInfo.includes('people') && (!image.people || image.people.length == 0)) {
+        this.config.activeImmichConfig.imageInfo.includes('people') && (!image.people || image.people.length == 0)) {
         const assetInfo = await immichApi.getAssetInfo(image.id);
         if (assetInfo) {
           this.lastImageLoaded.exifInfo = assetInfo.exifInfo;
@@ -315,10 +315,10 @@ module.exports = NodeHelper.create({
   resume: function() {
     Log.debug(LOG_PREFIX + 'Resume called!');
     if (!this.timer) {
-      Log.debug(LOG_PREFIX + 'Resuming...', this.config.slideshowSpeed);
+      Log.debug(LOG_PREFIX + 'Resuming...', this.config.activeImmichConfig.slideshowSpeed);
       this.timer = setInterval(() => {
         this.getNextImage(false, true);
-      }, this.config.slideshowSpeed);
+      }, this.config.activeImmichConfig.slideshowSpeed);
     }
     this.displayImage(true);
   },
@@ -335,8 +335,9 @@ module.exports = NodeHelper.create({
   socketNotificationReceived: function (notification, payload) {
     Log.debug(LOG_PREFIX + 'socketNotificationReceived:', notification); //, payload);
     if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
-      // Log.debug(LOG_PREFIX + 'Current config loaded?', !this.config, this.config);
-      if (!this.config) { // Only initialize if we have not initialized already
+      const isActiveConfigChange = !!this.config && this.config.activeImmichConfigIndex !== payload.activeImmichConfigIndex;
+      
+      if (!this.config || isActiveConfigChange) { // Only initialize if we have not initialized already
         // Log.debug(LOG_PREFIX + 'Initializing config...');
         this.suspend();
         const config = payload;
@@ -347,11 +348,16 @@ module.exports = NodeHelper.create({
           .split(',');
         this.validImageFileExtensions = new Set(validExtensionsList);
 
+        // Keep a copy of our config
+        this.config = config;
+
         // Get the image list in a non-blocking way since large # of images would cause
         // the MagicMirror startup banner to get stuck sometimes.
-        this.config = config;
         setTimeout(() => {
-          this.gatherImageList(config);
+          if (isActiveConfigChange) {
+            this.lastImageLoaded = true;
+          }
+          this.gatherImageList(config, isActiveConfigChange);
         }, 200);
       } else {
         // Show the current image for now, and then the new client will fall in sync with existing clients

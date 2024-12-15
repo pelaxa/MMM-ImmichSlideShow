@@ -15,43 +15,54 @@
 const LOG_PREFIX = 'MMM-ImmichSlideShow :: module :: ';
 const MODE_MEMORY = 'memory';
 const MODE_ALBUM = 'album';
+const MODE_SEARCH = 'search'; // TODO
 
 Module.register('MMM-ImmichSlideShow', {
   // Min version of MM2 required
   requiresVersion: "2.1.0",
 
-  // Default module config.
-  defaults: {
-    // an Immich API key to be able to access Immich
-    apiKey: 'provide your API KEY',
-    // Base Immich URL.  /api will be appended to this URL to make API calls.
-    immichUrl: 'provide your base Immich URL',
-    // The amount of timeout for immich API calls
-    immichTimeout: 6000,
+  defaultConfig: {
+    name: 'recents',
     // Mode of operation: 
     //    memory = show recent photos.  requires numDaystoInclude
     //    album = show picture from album.  requires albumId/albumName
     mode: MODE_MEMORY,
+    // an Immich API key to be able to access Immich
+    apiKey: 'provide your API KEY',
+    // Base Immich URL.  /api will be appended to this URL to make API calls.
+    url: 'provide your base Immich URL',
+    // The amount of timeout for immich API calls
+    timeout: 6000,
     // Number of days to include images for, including today
     numDaysToInclude: 7,
     // The ID of the album to display
     albumId: null,
     // The Name of the album to display
     albumName: null,
+    // When mode is search, we need to query for something
+    query: null,
+    // How many images to bring back when searching (between 1 and 1000)
+    querySize: 100,
     // the speed at which to switch between images, in milliseconds
     slideshowSpeed: 15 * 1000,
     // how to sort images: name, random, created, modified, none
     sortImagesBy: 'none',
     // whether to sort in ascending (default) or descending order
     sortImagesDescending: false,
+    // a comma separated list of values to display: name, date, since, geo
+    imageInfo: ['date', 'since'],
+  },
+
+  // Default module config.
+  defaults: {
+    immichConfigs: [],
+    activeImmichConfigIndex: 0,
     // list of valid file extensions, separated by commas
     validImageFileExtensions: 'bmp,jpg,jpeg,gif,png,heic',
     // show a panel containing information about the image currently displayed.
     showImageInfo: false,
     // The compression level of the resulting jpeg
     imageCompression: 0.7,
-    // a comma separated list of values to display: name, date, since, geo
-    imageInfo: ['date', 'since'],
     // location of the info div
     imageInfoLocation: 'bottomRight', // Other possibilities are: bottomLeft, topLeft, topRight
     // remove the file extension from image name
@@ -107,42 +118,78 @@ Module.register('MMM-ImmichSlideShow', {
     );
     // add identifier to the config
     this.config.identifier = this.identifier;
-    // ensure file extensions are lower case
-    this.config.validImageFileExtensions = this.config.validImageFileExtensions.toLowerCase();
-    // ensure image order is in lower case
-    this.config.sortImagesBy = this.config.sortImagesBy.toLowerCase();
     // commented out since this was not doing anything
     // set no error
     // this.errorMessage = null;
 
-    // Log.debug(LOG_PREFIX + 'current config', this.config);
+    Log.debug(LOG_PREFIX + 'current config', this.config);
+    Log.debug(LOG_PREFIX + 'immichConfigs', this.config.immichConfigs);
+    
+    // Make sure we have at least one immich config
+    if (this.config.immichUrl || this.config.apiKey) {
+      // This is the old config so try and creat a default config using the old values
+      Log.warn(
+        LOG_PREFIX + 'You are using the old configuration format which is depricated and will not be supported in the furture.  Please update your configuration!'
+      );
+      this.showLegacyNotification = true;
 
+      // setTimeout( () => {
+      //   this.sendNotification('SHOW_ALERT', {
+      //     type: 'notification',
+      //     title: 'MMM-ImmichSlideShow: Out of date configuration',
+      //     message: 'You are using the old configuration format which is depricated and will not be supported in the furture.  Please update your configuration!',
+      //   });
+      // }, 10000);
+
+      this.config.immichConfigs = [
+        {
+          name: 'AUTO_GENERATED_LEGACY',
+          mode: this.config.mode || this.defaultConfig.mode,
+          apiKey: this.config.apiKey || this.defaultConfig.apiKey,
+          url: this.config.immichUrl || this.defaultConfig.url,
+          timeout: this.config.immichTimeout || this.defaultConfig.timeout,
+          numDaysToInclude: this.config.numDaysToInclude || this.defaultConfig.numDaysToInclude,
+          albumId: this.config.albumId || this.defaultConfig.albumId,
+          albumName: this.config.albumName || this.defaultConfig.albumName,
+          slideshowSpeed: this.config.slideshowSpeed || this.defaultConfig.slideshowSpeed,
+          sortImagesBy: this.config.sortImagesBy || this.defaultConfig.sortImagesBy,
+          sortImagesDescending: this.config.sortImagesDescending || this.defaultConfig.sortImagesDescending,
+          imageInfo: this.config.imageInfo || this.defaultConfig.imageInfo,
+        }
+      ]
+    } else {
+      this.config.immichConfigs[0] = {...this.defaultConfig,...this.config.immichConfigs[0]};
+    }
+
+    // Validate that we have enough for the first config.  Since this will be used as the base
+    // for all other configs, then validating this alone should be good enough
+    const firstConfig = this.config.immichConfigs[0];
     //validate immich properties
-    if (this.config.mode && this.config.mode.trim().toLowerCase() === MODE_MEMORY) {
-      this.config.mode = MODE_MEMORY
+    if (firstConfig.mode && firstConfig.mode.trim().toLowerCase() === MODE_MEMORY) {
+      firstConfig.mode = MODE_MEMORY
       // Make sure we have numDaysToInclude
-      if (!this.config.numDaysToInclude || isNaN(this.config.numDaysToInclude)) {
+      if (!firstConfig.numDaysToInclude || isNaN(firstConfig.numDaysToInclude)) {
         Log.warn(
           LOG_PREFIX + 'memory mode set, but numDaysToInclude does not have a valid value'
         );
       }
-    } else if (this.config.mode && this.config.mode.trim().toLowerCase() === MODE_ALBUM) {
-      this.config.mode = MODE_ALBUM
+    } else if (firstConfig.mode && firstConfig.mode.trim().toLowerCase() === MODE_ALBUM) {
+      firstConfig.mode = MODE_ALBUM
       // Make sure we have album name or album id
-      if ((!this.config.albumId || this.config.albumId.length === 0) && (!this.config.albumName || this.config.albumName.length === 0)) {
+      if ((!firstConfig.albumId || firstConfig.albumId.length === 0) && (!firstConfig.albumName || firstConfig.albumName.length === 0)) {
         Log.warn(
           LOG_PREFIX + 'album mode set, but albumId or albumName do not have a valid value'
         );
-      } else if (this.config.albumId && this.config.albumName) {
+      } else if (firstConfig.albumId && firstConfig.albumName) {
         Log.warn(
           LOG_PREFIX + 'album mode set, but albumId or albumName do not have a valid value'
         );
         // This is a double check to make sure we only present one of these properties to
         // node_helper
-        if (this.config.albumId) {
-          this.config.albumName = null;
+        if (firstConfig.albumId) {
+          firstConfig.albumName = null;
         } else {
-          this.config.albumId = null;
+          firstConfig.albumId = null;
         }
       }
     } else {
@@ -151,48 +198,26 @@ Module.register('MMM-ImmichSlideShow', {
       );
     }
 
-    //validate imageinfo property.  This will make sure we have at least 1 valid value
-    const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bgeo\b|\bpeople\b|\bage\b/gi;
-    let setToDefault = false;
-    
-    if (
-      Array.isArray(this.config.imageInfo)
-    ) {
-      for (const [i, infoItem] of Object.entries(this.config.imageInfo)) {
-        
-        if (!imageInfoRegex.test(this.config.imageInfo)) {
-          setToDefault = true;
-          break;
-          // Make sure to trim the entries and make them lowercase
-          this.config.imageInfo[i] = this.config.imageInfo[i].trim().toLowerCase();
-        }
+    // Now loop through and make sure that all configs have all properties by copying from the 
+    // first config and overriding with the new config
+    this.config.immichConfigs.forEach((element,idx) => {
+      this.config.immichConfigs[idx] = {...this.config.immichConfigs[0],...element};
+      // ensure image order is in lower case
+      this.config.immichConfigs[idx].sortImagesBy = this.config.immichConfigs[idx].sortImagesBy.toLowerCase();
+      // Make sure to process imageInfo for all entries
+      if (element.imageInfo) {
+        this.config.immichConfigs[idx].imageInfo = this.fixImageInfo(element.imageInfo)
       }
-    } else if (!imageInfoRegex.test(this.config.imageInfo)) {
-      Log.warn(
-        LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
-      );
-      setToDefault = true;
-    } else {
-      // convert to lower case and replace any spaces with , to make sure we get an array back
-      // even if the user provided space separated values
-      this.config.imageInfo = this.config.imageInfo
-        .toLowerCase()
-        .replace(/\s/g, ',')
-        .split(',');
-      // now filter the array to only those that have values
-      this.config.imageInfo = this.config.imageInfo.filter((n) => n);
+    });
+
+    // ensure file extensions are lower case
+    this.config.validImageFileExtensions = this.config.validImageFileExtensions.toLowerCase();
+
+    // Create the activeConfig
+    if (this.config.activeImmichConfigIndex < 0) {
+      this.config.activeImmichConfigIndex = 0;
     }
-    // The imageInfo params had invalid values in them
-    if (setToDefault) {
-      // Use name as the default
-      this.config.imageInfo = ['date'];
-    } else if (this.config.imageInfo.includes('age') && !this.config.imageInfo.includes('people')) {
-      Log.warn(
-        LOG_PREFIX + 'imageInfo includes age but not people.  Removing age from imageInfo!'
-      );
-      // Remove age since people is not included
-      this.config.imageInfo = this.config.imageInfo.filter((n) => n !== 'age');
-    }
+    this.config.activeImmichConfig = this.config.immichConfigs[this.config.activeImmichConfigIndex < this.config.immichConfigs.length ? this.config.activeImmichConfigIndex : 0];
 
     if (!this.config.transitionImages) {
       this.config.transitionSpeed = '0';
@@ -221,7 +246,7 @@ Module.register('MMM-ImmichSlideShow', {
     // overridden
     if (this.config.backgroundAnimationDuration === '1s') {
       this.config.backgroundAnimationDuration =
-        this.config.slideshowSpeed / 1000 + 's';
+        this.config.activeImmichConfig.slideshowSpeed / 1000 + 's';
     }
 
     // Chrome versions < 81 do not support EXIF orientation natively. A CSS transformation
@@ -229,6 +254,60 @@ Module.register('MMM-ImmichSlideShow', {
     this.browserSupportsExifOrientationNatively = CSS.supports(
       'image-orientation: from-image'
     );
+  },
+
+  /**
+   * This funciton checks the value of imageInfo and process it to convert it
+   * to an array
+   * @param {array/string} imageInfo 
+   * @returns 
+   */
+  fixImageInfo: function(imageInfo) {
+    //validate imageinfo property.  This will make sure we have at least 1 valid value
+    const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bgeo\b|\bpeople\b|\bage\b/gi;
+    let setToDefault = false;
+    let newImageInfo = [];
+    if (
+      Array.isArray(imageInfo)
+    ) {
+      for (const [i, infoItem] of Object.entries(imageInfo)) {
+        
+        if (!imageInfoRegex.test(imageInfo)) {
+          setToDefault = true;
+          break;
+          // Make sure to trim the entries and make them lowercase
+          newImageInfo.push(imageInfo[i].trim().toLowerCase());
+        }
+      }
+    } else if (!imageInfoRegex.test(imageInfo)) {
+      Log.warn(
+        LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
+      );
+      setToDefault = true;
+    } else {
+      // convert to lower case and replace any spaces with , to make sure we get an array back
+      // even if the user provided space separated values
+      newImageInfo = imageInfo
+        .toLowerCase()
+        .replace(/\s/g, ',')
+        .split(',');
+      // now filter the array to only those that have values
+      newImageInfo = newImageInfo.filter((n) => n);
+    }
+
+    // The imageInfo params had invalid values in them
+    if (setToDefault) {
+      // Use name as the default
+      newImageInfo = ['date'];
+    } else if (newImageInfo.includes('age') && !newImageInfo.includes('people')) {
+      Log.warn(
+        LOG_PREFIX + 'imageInfo includes age but not people.  Removing age from imageInfo!'
+      );
+      // Remove age since people is not included
+      newImageInfo = newImageInfo.filter((n) => n !== 'age');
+    }
+
+    return newImageInfo;
   },
 
   getScripts: function () {
@@ -244,34 +323,47 @@ Module.register('MMM-ImmichSlideShow', {
 
   // generic notification handler
   notificationReceived: function (notification, payload, sender) {
-    Log.debug(LOG_PREFIX + 'notificationReceived', notification, ' || Payload: ', (payload ? payload.identifier : '<undefined>'), ' || Sender: ', sender);
+    Log.debug(LOG_PREFIX + 'notificationReceived', notification, ' || Payload: ', (payload ? JSON.stringify(payload) : '<undefined>'), ' || Sender: ', sender);
 
     if (notification === 'DOM_OBJECTS_CREATED') {
-      Log.debug(LOG_PREFIX + 'Sedning register API notification for ' + this.name);
+      Log.debug(LOG_PREFIX + 'Sending register API notification for ' + this.name);
+      const actions = {
+        showNext: {
+          method: 'GET',
+          notification: "IMMICHSLIDESHOW_NEXT",
+          prettyName: 'Show next picture'
+        },
+        showPrevisous: {
+          method: 'GET',
+          notification: "IMMICHSLIDESHOW_PREVIOUS",
+          prettyName: 'Show previous picture'
+        },
+        pause: {
+          method: 'GET',
+          notification: "IMMICHSLIDESHOW_PAUSE",
+          prettyName: 'Pause slide show'
+        },
+        resume: {
+          method: 'GET',
+          notification: "IMMICHSLIDESHOW_RESUME",
+          prettyName: 'Resume slide show'
+        }
+      };
+      this.config.immichConfigs.forEach((config, idx) => {
+        actions[`setConfigIndex${idx}`] = {
+          method: 'POST',
+          notification: "IMMICHSLIDESHOW_SET_ACTIVE_CONFIG",
+          payload: {data: idx},
+          prettyName: `Make config ${idx} active`
+        }
+      });
+
+      // Add our own definition
       this.sendNotification('REGISTER_API', {
         module: this.name,
-        path:  this.name.toLowerCase(),
-        actions: {
-          showNext: {
-            method: 'GET',
-            notification: "IMMICHSLIDESHOW_NEXT"
-          },
-          showPrevisous: {
-            method: 'GET',
-            notification: "IMMICHSLIDESHOW_PREVIOUS"
-          },
-          pause: {
-            method: 'GET',
-            notification: "IMMICHSLIDESHOW_PAUSE"
-          },
-          resume: {
-            method: 'GET',
-            notification: "IMMICHSLIDESHOW_RESUME"
-          }
-        }
+        path: this.name.substring(4).toLowerCase(),
+        actions: actions
       }); 
-    
-      
     //  } else if (notification === 'IMMICHSLIDESHOW_UPDATE_IMAGE_LIST') {
     //   this.suspend();
     //   this.updateImageList();
@@ -299,6 +391,17 @@ Module.register('MMM-ImmichSlideShow', {
      this.resume();
     } else if (notification === 'IMMICHSLIDESHOW_PAUSE') {
       this.suspend();
+    } else if (notification === 'IMMICHSLIDESHOW_SET_ACTIVE_CONFIG') {
+      // Update config in backend
+      this.setActiveConfig(payload.data);
+    } else if (notification === 'ALL_MODULES_STARTED') {
+      if (this.showLegacyNotification) {
+        this.sendNotification('SHOW_ALERT', {
+          type: 'notification',
+          title: 'MMM-ImmichSlideShow',
+          message: 'You are using the old configuration format which is depricated and will not be supported in the furture.  Please update your module configuration!',
+        });
+      }
     } else {
       Log.debug(LOG_PREFIX + 'received an unexpected system notification: ' + notification);
     }
@@ -306,20 +409,17 @@ Module.register('MMM-ImmichSlideShow', {
 
   // the socket handler
   socketNotificationReceived: function (notification, payload) {
-    Log.debug(LOG_PREFIX + 'socketNotificationReceived', notification, ' || Payload: ', payload ? payload.identifier : '<null>');
-    // check this is for this module based on the woeid
-    if (notification === 'IMMICHSLIDESHOW_READY') {
-    
-      if (payload.identifier === this.identifier) {
+    Log.debug(LOG_PREFIX + 'socketNotificationReceived', notification, ' || Payload: ', payload ? JSON.stringify(payload) : '<null>');
+    // check this is for this module based on the id
+    if (!!payload.identifier && payload.identifier === this.identifier) {
+      // check this is for this module based on the woeid
+      if (notification === 'IMMICHSLIDESHOW_READY') {
         this.resume();
-      }
-    } else if (notification === 'IMMICHSLIDESHOW_FILELIST') {
-      // bubble up filelist notifications
-      this.imageList = payload;
-      // Log.debug (LOG_PREFIX + " >>>>>>>>>>>>>>> IMAGE LIST", JSON.stringify(payload));
-    } else if (notification === 'IMMICHSLIDESHOW_DISPLAY_IMAGE') {
-      // check this is for this module based on the id
-      if (payload.identifier === this.identifier) {
+      } else if (notification === 'IMMICHSLIDESHOW_FILELIST') {
+        // bubble up filelist notifications
+        this.imageList = payload;
+        // Log.debug (LOG_PREFIX + " >>>>>>>>>>>>>>> IMAGE LIST", JSON.stringify(payload));
+      } else if (notification === 'IMMICHSLIDESHOW_DISPLAY_IMAGE') {
         Log.debug(LOG_PREFIX + 'Displaying current image', payload.path);
         // Create an interval timer that if not called will attempt to establish configuration again.
         // Apparently, the socket will keep retrying until it connects, so we only need to reattempt once.
@@ -331,17 +431,15 @@ Module.register('MMM-ImmichSlideShow', {
         this.resyncTimeout = setTimeout(() => {
           console.log('Re-registering to make sure images change...')
           me.updateImageList();
-        }, me.config.slideshowSpeed+me.config.immichTimeout);
+        }, me.config.activeImmichConfig.slideshowSpeed+me.config.activeImmichConfig.timeout);
         this.displayImage(payload);
+      } else if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
+        // Update config in backend
+        this.updateImageList();
+      } else {
+        Log.warn(LOG_PREFIX + 'received an unexpected module notification: ' + notification);
       }
-    } else if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
-      // Update config in backend
-      this.updateImageList();
-    } else {
-      Log.warn(LOG_PREFIX + 'received an unexpected module notification: ' + notification);
-    }
-
-    
+    }    
   },
 
   // Override dom generator.
@@ -360,10 +458,10 @@ Module.register('MMM-ImmichSlideShow', {
     }
 
     if (this.config.showProgressBar) {
-      this.createProgressbarDiv(wrapper, this.config.slideshowSpeed);
+      this.createProgressbarDiv(wrapper, this.config.activeImmichConfig.slideshowSpeed);
     }
 
-    if (this.config.apiKey.length == 0) {
+    if (this.config.activeImmichConfig.apiKey.length == 0) {
       Log.error(
         LOG_PREFIX + 'Missing required parameter apiKey.'
       );
@@ -434,6 +532,8 @@ Module.register('MMM-ImmichSlideShow', {
         // Restart css animation
         const oldDiv = document.getElementsByClassName('progress-inner')[0];
         const newDiv = oldDiv.cloneNode(true);
+        // Make sure the new clone's style is set according to our new slideshow speed
+        newDiv.style.animation = `move ${this.config.activeImmichConfig.slideshowSpeed}ms linear`;
         oldDiv.parentNode.replaceChild(newDiv, oldDiv);
         newDiv.style.display = '';
       }
@@ -555,7 +655,7 @@ Module.register('MMM-ImmichSlideShow', {
 
   updateImageInfo: function (imageinfo, imageDate) {
     let imageProps = [];
-    this.config.imageInfo.forEach((prop, idx) => {
+    this.config.activeImmichConfig.imageInfo.forEach((prop, idx) => {
       switch (prop) {
         case 'date': // show date image was taken
           if (imageDate && imageDate !== 'Invalid date') {
@@ -603,7 +703,7 @@ Module.register('MMM-ImmichSlideShow', {
                 peopleName += ', ';
               }
               peopleName += people.name || '';
-              if (people.birthDate && this.config.imageInfo.includes('age')) {
+              if (people.birthDate && this.config.activeImmichConfig.imageInfo.includes('age')) {
                 peopleName += `(${this.getAgeFromDate(people.birthDate, imageDate)})`
               }
               
@@ -665,6 +765,24 @@ Module.register('MMM-ImmichSlideShow', {
       'IMMICHSLIDESHOW_REGISTER_CONFIG',
       this.config
     );
+  },
+
+  setActiveConfig: function (configIndex) {
+    Log.debug(LOG_PREFIX + 'setActiveConfig called...', configIndex, !isNaN(configIndex), configIndex < this.config.immichConfigs.length);
+    // Validate that the payload is good.  The id has already been validated
+    if (!isNaN(configIndex) && configIndex > -1 && configIndex < this.config.immichConfigs.length) {
+      this.config.activeImmichConfig = this.config.immichConfigs[configIndex];
+      this.config.activeImmichConfigIndex = configIndex;
+      Log.debug(LOG_PREFIX + 'new active config', this.config.activeImmichConfig);
+      // ask helper function to get the image list
+      this.sendSocketNotification(
+        'IMMICHSLIDESHOW_REGISTER_CONFIG',
+        this.config
+      );
+    } else {
+      Log.debug(LOG_PREFIX + 'bad parameter passed to setActiveConfig:', configIndex);
+    }
+    
   },
 
   getAgeFromDate: function (dateString, imageDate) {
