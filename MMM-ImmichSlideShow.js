@@ -264,24 +264,31 @@ Module.register('MMM-ImmichSlideShow', {
    */
   fixImageInfo: function(imageInfo) {
     //validate imageinfo property.  This will make sure we have at least 1 valid value
-    const imageInfoRegex = /\bname\b|\bdate\b|\bsince\b|\bgeo\b|\bpeople\b|\bage\b/gi;
+    const imageInfoValues = '\\bname\\b|\\bdate\\b|\\bsince\\b|\\bgeo\\b|\\bpeople\\b|\\bage\\b';
+    const imageInfoRegex = new RegExp(imageInfoValues,'gi');
+    
     let setToDefault = false;
     let newImageInfo = [];
     if (
       Array.isArray(imageInfo)
     ) {
       for (const [i, infoItem] of Object.entries(imageInfo)) {
-        
-        if (!imageInfoRegex.test(imageInfo)) {
-          setToDefault = true;
-          break;
+        console.debug('Checking imageInfo: ', i, infoItem);
+        // Skip any entries that do not have a matching value
+        if (imageInfoValues.substring(infoItem.trim().toLowerCase())) {
           // Make sure to trim the entries and make them lowercase
-          newImageInfo.push(imageInfo[i].trim().toLowerCase());
+          newImageInfo.push(infoItem.trim().toLowerCase());
+        } else {
+          console.warn(LOG_PREFIX + `invalid image info item '${infoItem}'`);
         }
+      }
+      // If nothing matched, then use default
+      if (newImageInfo.length === 0) {
+        setToDefault = true;
       }
     } else if (!imageInfoRegex.test(imageInfo)) {
       Log.warn(
-        LOG_PREFIX + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
+        LOG_PREFIX + 'showImageInfo is set, 2but imageInfo does not have a valid value. Using date as default!'
       );
       setToDefault = true;
     } else {
