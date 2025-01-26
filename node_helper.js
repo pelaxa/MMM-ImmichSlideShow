@@ -249,7 +249,7 @@ module.exports = NodeHelper.create({
       // If there is no exif info available, or if we need people but no people are listed
       // then fetch it with a separate call based on the API version
       if (!image.exifInfo || image.exifInfo.length == 0 || 
-        this.config.activeImmichConfig.imageInfo.includes('people') && (!image.people || image.people.length == 0)) {
+        (this.config.activeImmichConfig.imageInfo.includes('people') || this.config.activeImmichConfig.imageInfo.includes('people_skip')) && (!image.people || image.people.length == 0)) {
         const assetInfo = await immichApi.getAssetInfo(image.id);
         if (assetInfo) {
           this.lastImageLoaded.exifInfo = assetInfo.exifInfo;

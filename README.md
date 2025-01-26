@@ -226,8 +226,9 @@ The following properties can be configured:
 						</tr>
 						<tr>
 							<td><code>imageInfo</code></td>
-							<td>A list of image properties to display in the image info div.  Possible values are : date (EXIF date from image), name (image name), since (how long ago the picture was taken), geo (the city and country where the picture was taken if available), people (the name of the people in the picture), and age (The age of the people at the time the photo was taken.  Only works if people is also added).
-							The values can be provided as an array of strings or as a space separated list string.<br>
+							<td>A list of image properties to display in the image info div.  Possible values are : <code>date</code> (EXIF date from image), <code>name</code> (image name), <code>since</code> (how long ago the picture was taken), <code>geo</code> (the city and country where the picture was taken if available), <code>people</code> (the name of the people in the picture. Use <code>people_skip</code> instead to not show extra separators for recognized faces with no name), <code>age</code> (The age of the people at the time the photo was taken.  Only works if <code>people</code> is also added), and <code>desc</code> (The description of the image if one is available).
+							The values can be provided as an array of strings or as a space separated list string and the order that you provide this info is how it will display (top to bottom).<br/>
+							<b>Note</b>: providing too many options here may take up a large portion of the screen.<br/>
 								<br><b>Example:</b> <code>'date name people age'</code> or <code>[ 'date', 'name', 'people', 'age']</code>
 								<br><b>Default value:</b> <code>['date', 'since']</code>
 								<br>This value is <b>OPTIONAL</b>

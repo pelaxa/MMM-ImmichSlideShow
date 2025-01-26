@@ -45,7 +45,7 @@ Module.register('MMM-ImmichSlideShow', {
     querySize: 100,
     // the speed at which to switch between images, in milliseconds
     slideshowSpeed: 15 * 1000,
-    // how to sort images: name, random, created, modified, none
+    // how to sort images: name, random, created, modified, taken, none
     sortImagesBy: 'none',
     // whether to sort in ascending (default) or descending order
     sortImagesDescending: false,
@@ -206,7 +206,7 @@ Module.register('MMM-ImmichSlideShow', {
       this.config.immichConfigs[idx].sortImagesBy = this.config.immichConfigs[idx].sortImagesBy.toLowerCase();
       // Make sure to process imageInfo for all entries
       if (element.imageInfo) {
-        this.config.immichConfigs[idx].imageInfo = this.fixImageInfo(element.imageInfo)
+        this.config.immichConfigs[idx].imageInfo = this.fixImageInfo(element.imageInfo, idx)
       }
     });
 
@@ -262,24 +262,26 @@ Module.register('MMM-ImmichSlideShow', {
    * @param {array/string} imageInfo 
    * @returns 
    */
-  fixImageInfo: function(imageInfo) {
+  fixImageInfo: function(imageInfo, index) {
     //validate imageinfo property.  This will make sure we have at least 1 valid value
-    const imageInfoValues = '\\bname\\b|\\bdate\\b|\\bsince\\b|\\bgeo\\b|\\bpeople\\b|\\bage\\b';
+    const imageInfoValues = '\\bname\\b|\\bdate\\b|\\bsince\\b|\\bgeo\\b|\\bpeople\\b|\\bpeople_skip\\b|\\bage\\b|\\bdesc\\b|';
     const imageInfoRegex = new RegExp(imageInfoValues,'gi');
-    
+    // Set the log prefix
+    const prefix = LOG_PREFIX + `config[${index}]: `;
+        
     let setToDefault = false;
     let newImageInfo = [];
     if (
       Array.isArray(imageInfo)
     ) {
       for (const [i, infoItem] of Object.entries(imageInfo)) {
-        console.debug('Checking imageInfo: ', i, infoItem);
+        console.debug(prefix + 'Checking imageInfo: ', i, infoItem);
         // Skip any entries that do not have a matching value
         if (imageInfoValues.substring(infoItem.trim().toLowerCase())) {
           // Make sure to trim the entries and make them lowercase
           newImageInfo.push(infoItem.trim().toLowerCase());
         } else {
-          console.warn(LOG_PREFIX + `invalid image info item '${infoItem}'`);
+          console.warn(prefix + `invalid image info item '${infoItem}'`);
         }
       }
       // If nothing matched, then use default
@@ -288,7 +290,7 @@ Module.register('MMM-ImmichSlideShow', {
       }
     } else if (!imageInfoRegex.test(imageInfo)) {
       Log.warn(
-        LOG_PREFIX + 'showImageInfo is set, 2but imageInfo does not have a valid value. Using date as default!'
+        prefix + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
       );
       setToDefault = true;
     } else {
@@ -306,12 +308,21 @@ Module.register('MMM-ImmichSlideShow', {
     if (setToDefault) {
       // Use name as the default
       newImageInfo = ['date'];
-    } else if (newImageInfo.includes('age') && !newImageInfo.includes('people')) {
-      Log.warn(
-        LOG_PREFIX + 'imageInfo includes age but not people.  Removing age from imageInfo!'
-      );
-      // Remove age since people is not included
-      newImageInfo = newImageInfo.filter((n) => n !== 'age');
+    } else {
+      if (newImageInfo.includes('people') && newImageInfo.includes('people_skip')) {
+        Log.warn(
+          prefix + 'imageInfo should not include both people and people_skip.  Using people!'
+        );
+        // Remove people_skip since people is already included
+        newImageInfo = newImageInfo.filter((n) => n !== 'people_skip');
+      }
+      if (newImageInfo.includes('age') && !(newImageInfo.includes('people') || newImageInfo.includes('people_skip'))) {
+        Log.warn(
+          prefix + 'imageInfo includes age but not people.  Removing age from imageInfo!'
+        );
+        // Remove age since people is not included
+        newImageInfo = newImageInfo.filter((n) => n !== 'age');
+      }
     }
 
     return newImageInfo;
@@ -431,7 +442,7 @@ Module.register('MMM-ImmichSlideShow', {
         // Create an interval timer that if not called will attempt to establish configuration again.
         // Apparently, the socket will keep retrying until it connects, so we only need to reattempt once.
         if (!!this.resyncTimeout) {
-          console.log('this.resyncTimeout', this.resyncTimeout);
+          console.debug('this.resyncTimeout', this.resyncTimeout);
           clearTimeout(this.resyncTimeout);
         }
         const me = this;
@@ -701,15 +712,20 @@ Module.register('MMM-ImmichSlideShow', {
             imageProps.push(geoLocation);
           }
           break;
-        case 'people': // show people in image
+        case 'people':
+        case 'people_skip': // show people in image
           // Only display last path component as image name if recurseSubDirectories is not set.
           if (Array.isArray(imageinfo.people)) {
             let peopleName = '';
-            imageinfo.people.forEach(people => {
-              if (peopleName.length > 0) {
+            imageinfo.people.forEach((people, idx) => {
+              const personName = people.name || '?';
+
+              // Add a comma between the people's names, and if skip is set do not add comma for people that have no name
+              if (peopleName.length > 0 && idx > 0 && (prop=='people' || (prop=='people_skip' && personName.length > 0))) {
                 peopleName += ', ';
               }
-              peopleName += people.name || '';
+
+              peopleName += personName;
               if (people.birthDate && this.config.activeImmichConfig.imageInfo.includes('age')) {
                 peopleName += `(${this.getAgeFromDate(people.birthDate, imageDate)})`
               }
@@ -721,7 +737,14 @@ Module.register('MMM-ImmichSlideShow', {
             }
           }
           break;
-        case 'age': // show people's in images
+        case 'age': // show people's age in images
+          break;
+        case 'desc': // show description of images
+          if (imageinfo.exifInfo && imageinfo.exifInfo.description) {
+            Log.debug(
+              LOG_PREFIX + 'Description: ' + imageinfo.exifInfo.description);
+            imageProps.push(imageinfo.exifInfo.description);
+          }
           break;
         default:
           Log.warn(
