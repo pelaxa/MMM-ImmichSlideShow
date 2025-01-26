@@ -130,7 +130,6 @@ curl --location 'https://myimmich.server:443/api/notification/IMMICHSLIDESHOW_SE
 ## Configuration options
 
 The following properties can be configured:
-
 <table width="100%">
 	<!-- why, markdown... -->
 	<thead>
@@ -145,97 +144,8 @@ The following properties can be configured:
 			<td>This holds an array of immich configuration objects so that you can cahnge the configuration at runtime.  This is useful if you want to show one set of pictures when you are alone of have family and a different set when you have guests.  This was introduced in v1.1.0 and you will need to update your configuration to this new format.<br/>
 			<br/>
 			<b>Note:</b> So long as you provide the url and apiKey for the first configuration, it is not necessary for others, but if you do want to have a config that talks to a different Immich server, you have the option of including those as well.  The way the configurations work is that the first config has to be as specific as you like, and the other configs can just provide the changes needed since they just override the properties of the first config and pick up any missing properties from it.<br/>
-				<br/>This value is <b>REQUIRED</b><br/><br/>
-				<table style="max-width: none; width: auto;">
-					<!-- why, markdown... -->
-					<thead>
-						<tr>
-							<th colspan=2>Immich Configuration Object</th>
-						</tr>
-						<tr>
-							<th>Option</th>
-							<th>Description</th>
-						</tr>
-					<thead>
-					<tbody>
-						<tr>
-							<td><code>url</code></td>
-							<td>The base URL of your Immich installation (used to be called <i>immichUrl</i> prior to version 1.1.0).  a /api context will be appended to this URL to access the Immich API.<br>
-								<br><b>Example:</b> <code>https://myimmich.server:443</code>
-								<br>This value is <b>REQUIRED</b>
-							</td>
-						</tr>
-						<tr>
-							<td><code>apiKey</code></td>
-							<td>The API key to use when accessing the Immich server.  Without this all the calls will fail. See the Creating an API Key section.<br>
-								<br><b>Example:</b> <code>MyAPiKey</code>
-								<br>This value is <b>REQUIRED</b>
-							</td>
-						</tr>
-						<tr>
-							<td><code>timeout</code></td>
-							<td>The timeout for Immich API calls in milliseconds (used to be called <i>immichTimeout</i> prior to version 1.1.0).<br>
-								<br><b>Example:</b> <code>10000</code>
-								<br><b>Default value:</b> <code>6000</code>
-								<br>This value is <b>OPTIONAL</b>
-							</td>
-						</tr>
-						<tr>
-							<td><code>mode</code></td>
-							<td>The mode of operation for the module.  Valid options are 'memory' or 'album' and depending on which is chosen, additional settings are required.<br>
-								<br><b>Example:</b> <code>memory</code> for memory mode
-								<br>This value is <b>REQUIRED</b>
-							</td>
-						</tr>
-						<tr>
-							<td><code>numDaysToInclude</code></td>
-							<td>The number of days to go back and collect images for.  Use this to make sure you always have images to display since there could be days where no pictures were taken over the years.<br>
-								<br><b>Example:</b> <code>7</code> for 7 days
-								<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>memory</i>
-							</td>
-						</tr>
-						<tr>
-							<td><code>albumId</code></td>
-							<td>The id of the album to show pictures from. Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
-								<br><b>Example:</b> <code>1b57d1dc-57d6-4cd4-bc1d-f8ebf759ba16</code>
-								<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumName</i> is not provided.
-							</td>
-						</tr>
-						<tr>
-							<td><code>albumName</code></td>
-							<td>The id of the album to show pictures from.  This name is case sensitive and should match the album name in Immich exactly.  Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
-								<br><b>Example:</b> <code>Family Trip 2023</code>
-								<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumId</i> is not provided.
-							</td>
-						</tr>
-						<tr>
-							<td><code>sortImagesBy</code></td>
-							<td>String value, determines how images are sorted.  Possible values are: name (by file name), created (by Immich created time), modified (by Immich modified time), taken (by original date of the image based on Exif data), random (by random order), none (default chronological day order, meaning all images for the 1st over the years before the images for the 2nd, etc).<br>
-								<br><b>Example:</b> <code>created</code>
-								<br><b>Default value:</b> <code>none</code>
-								<br>This value is <b>OPTIONAL</b>
-							</td>
-						</tr>
-						<tr>
-							<td><code>sortImagesDescending</code></td>
-							<td>Boolean value, if true will sort images in descending order, otherwise in ascending order.<br>
-								<br><b>Example:</b> <code>true</code>
-								<br><b>Default value:</b> <code>false</code>
-								<br>This value is <b>OPTIONAL</b>
-							</td>
-						</tr>
-						<tr>
-							<td><code>imageInfo</code></td>
-							<td>A list of image properties to display in the image info div.  Possible values are : <code>date</code> (EXIF date from image), <code>name</code> (image name), <code>since</code> (how long ago the picture was taken), <code>geo</code> (the city and country where the picture was taken if available), <code>people</code> (the name of the people in the picture. Use <code>people_skip</code> instead to not show extra separators for recognized faces with no name), <code>age</code> (The age of the people at the time the photo was taken.  Only works if <code>people</code> is also added), and <code>desc</code> (The description of the image if one is available).
-							The values can be provided as an array of strings or as a space separated list string and the order that you provide this info is how it will display (top to bottom).<br/>
-							<b>Note</b>: providing too many options here may take up a large portion of the screen.<br/>
-								<br><b>Example:</b> <code>'date name people age'</code> or <code>[ 'date', 'name', 'people', 'age']</code>
-								<br><b>Default value:</b> <code>['date', 'since']</code>
-								<br>This value is <b>OPTIONAL</b>
-							</td>
-						</tr>
-					</tbody>
-				</table>
+			<br/>This value is <b>REQUIRED</b><br/>
+			See `Immich Configuration Options` below<br/>	
 			</td>
 		</tr>
         <tr>
@@ -406,6 +316,95 @@ The following properties can be configured:
 		</tr>
     </tbody>
 </table>
+
+### Immich Configuration Options
+<table style="max-width: none; width: auto;">
+	<thead>
+		<tr>
+			<th>Option</th>
+			<th>Description</th>
+		</tr>
+	<thead>
+	<tbody>
+		<tr>
+			<td><code>url</code></td>
+			<td>The base URL of your Immich installation (used to be called <i>immichUrl</i> prior to version 1.1.0).  a /api context will be appended to this URL to access the Immich API.<br>
+				<br><b>Example:</b> <code>https://myimmich.server:443</code>
+				<br>This value is <b>REQUIRED</b>
+			</td>
+		</tr>
+		<tr>
+			<td><code>apiKey</code></td>
+			<td>The API key to use when accessing the Immich server.  Without this all the calls will fail. See the Creating an API Key section.<br>
+				<br><b>Example:</b> <code>MyAPiKey</code>
+				<br>This value is <b>REQUIRED</b>
+			</td>
+		</tr>
+		<tr>
+			<td><code>timeout</code></td>
+			<td>The timeout for Immich API calls in milliseconds (used to be called <i>immichTimeout</i> prior to version 1.1.0).<br>
+				<br><b>Example:</b> <code>10000</code>
+				<br><b>Default value:</b> <code>6000</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+		<tr>
+			<td><code>mode</code></td>
+			<td>The mode of operation for the module.  Valid options are 'memory' or 'album' and depending on which is chosen, additional settings are required.<br>
+				<br><b>Example:</b> <code>memory</code> for memory mode
+				<br>This value is <b>REQUIRED</b>
+			</td>
+		</tr>
+		<tr>
+			<td><code>numDaysToInclude</code></td>
+			<td>The number of days to go back and collect images for.  Use this to make sure you always have images to display since there could be days where no pictures were taken over the years.<br>
+				<br><b>Example:</b> <code>7</code> for 7 days
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>memory</i>
+			</td>
+		</tr>
+		<tr>
+			<td><code>albumId</code></td>
+			<td>The id of the album to show pictures from. Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
+				<br><b>Example:</b> <code>1b57d1dc-57d6-4cd4-bc1d-f8ebf759ba16</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumName</i> is not provided.
+			</td>
+		</tr>
+		<tr>
+			<td><code>albumName</code></td>
+			<td>The id of the album to show pictures from.  This name is case sensitive and should match the album name in Immich exactly.  Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
+				<br><b>Example:</b> <code>Family Trip 2023</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumId</i> is not provided.
+			</td>
+		</tr>
+		<tr>
+			<td><code>sortImagesBy</code></td>
+			<td>String value, determines how images are sorted.  Possible values are: name (by file name), created (by Immich created time), modified (by Immich modified time), taken (by original date of the image based on Exif data), random (by random order), none (default chronological day order, meaning all images for the 1st over the years before the images for the 2nd, etc).<br>
+				<br><b>Example:</b> <code>created</code>
+				<br><b>Default value:</b> <code>none</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+		<tr>
+			<td><code>sortImagesDescending</code></td>
+			<td>Boolean value, if true will sort images in descending order, otherwise in ascending order.<br>
+				<br><b>Example:</b> <code>true</code>
+				<br><b>Default value:</b> <code>false</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+		<tr>
+			<td><code>imageInfo</code></td>
+			<td>A list of image properties to display in the image info div.  Possible values are : <code>date</code> (EXIF date from image), <code>name</code> (image name), <code>since</code> (how long ago the picture was taken), <code>geo</code> (the city and country where the picture was taken if available), <code>people</code> (the name of the people in the picture. Use <code>people_skip</code> instead to not show extra separators for recognized faces with no name), <code>age</code> (The age of the people at the time the photo was taken.  Only works if <code>people</code> is also added), and <code>desc</code> (The description of the image if one is available).
+			The values can be provided as an array of strings or as a space separated list string and the order that you provide this info is how it will display (top to bottom).<br/>
+			<b>Note</b>: providing too many options here may take up a large portion of the screen.<br/>
+				<br><b>Example:</b> <code>'date name people age'</code> or <code>[ 'date', 'name', 'people', 'age']</code>
+				<br><b>Default value:</b> <code>['date', 'since']</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+	</tbody>
+</table>
+
 
 ### Configuration Example
 ```javascript
