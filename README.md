@@ -146,7 +146,7 @@ The following properties can be configured:
 			<br/>
 			<b>Note:</b> So long as you provide the url and apiKey for the first configuration, it is not necessary for others, but if you do want to have a config that talks to a different Immich server, you have the option of including those as well.  The way the configurations work is that the first config has to be as specific as you like, and the other configs can just provide the changes needed since they just override the properties of the first config and pick up any missing properties from it.<br/>
 				<br/>This value is <b>REQUIRED</b><br/><br/>
-				<table>
+				<table style="max-width: none; width: auto;">
 					<!-- why, markdown... -->
 					<thead>
 						<tr>
