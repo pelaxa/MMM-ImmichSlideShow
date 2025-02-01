@@ -5,8 +5,7 @@ This is a MagicMirror module based on <a href="https://github.com/darickc/MMM-Ba
 The `MMM-ImmichSlideShow` module is designed to display images fullscreen, one at a time on a fixed interval, from <a href="https://immich.app/">Immich</a>. These images can be shown in order or at random. The images can transition from one to the other and be shown with no edge (cover) or the entire image (contain).  The configuration is also mostly matching MMM-Background.
 
 
-<img src="https://github.com/darickc/MMM-BackgroundSlideshow/blob/master/screenshots/landscape.jpg" style="width: 300px;" />
-<img src="https://github.com/darickc/MMM-BackgroundSlideshow/blob/master/screenshots/portait.jpg" style="width: 300px;" />
+<img src="images/screenshot.gif" style="width: 600px;" />
 
 ## Dependencies / Requirements
 
