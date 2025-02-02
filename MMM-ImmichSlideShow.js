@@ -72,7 +72,7 @@ Module.register('MMM-ImmichSlideShow', {
     // the color of the background when the image does not take up the full screen
     backgroundColor: '#000', // can also be rbga(x,y,z,alpha)
     // the filter to apply to the background.  Useful to give the background a translucent effect
-    backdropFilter: 'blur(5px)',
+    backdropFilter: 'blur(15px)',
     // the sizing of the background image
     // cover: Resize the background image to cover the entire container, even if it has to stretch the image or cut a little bit off one of the edges
     // contain: Resize the background image to make sure the image is fully visible
@@ -108,7 +108,8 @@ Module.register('MMM-ImmichSlideShow', {
       'flipY'
     ],
     transitionTimingFunction: 'cubic-bezier(.17,.67,.35,.96)',
-    animations: ['slide', 'zoomOut', 'zoomIn']
+    animations: ['slide', 'zoomOut', 'zoomIn'],
+    showBlurredImageForBlackBars: false
   },
 
   // load function
@@ -465,9 +466,10 @@ Module.register('MMM-ImmichSlideShow', {
     let wrapper = document.createElement('div');
     this.imagesDiv = document.createElement('div');
     this.imagesDiv.className = 'images';
-    // Create a background color around the image is not see through
-    this.imagesDiv.style.backgroundColor = this.config.backgroundColor || 'transparent';
-    this.imagesDiv.style.backdropFilter = this.config.backdropFilter || 'blur(10px)';
+    if (this.config.backgroundSize == 'contain' && this.config.showBlurredImageForBlackBars) {
+      this.imagesDiv.style.backgroundSize = 'cover';
+      this.imagesDiv.style.backgroundPosition = 'center';
+    }
 
     wrapper.appendChild(this.imagesDiv);
 
@@ -531,6 +533,15 @@ Module.register('MMM-ImmichSlideShow', {
 
       const transitionDiv = document.createElement('div');
       transitionDiv.className = 'transition';
+      // Create a background color around the image is not see through
+      transitionDiv.style.backdropFilter = this.config.backdropFilter || 'blur(10px)';
+
+      if (this.config.backgroundSize == 'contain' && this.config.showBlurredImageForBlackBars) {
+        this.imagesDiv.style.backgroundImage = `url("${image.src}")`;
+        this.imagesDiv.style.backgroundPosition = 'center';
+      } else {
+        this.imagesDiv.style.backgroundColor = this.config.backgroundColor || 'rgba(0,0,0,0.5)';
+      }
       if (this.config.transitionImages && this.config.transitions.length > 0) {
         let randomNumber = Math.floor(
           Math.random() * this.config.transitions.length
@@ -545,7 +556,7 @@ Module.register('MMM-ImmichSlideShow', {
 
       const imageDiv = this.createDiv();
       imageDiv.style.backgroundImage = `url("${image.src}")`;
-
+      
       if (this.config.showProgressBar) {
         // Restart css animation
         const oldDiv = document.getElementsByClassName('progress-inner')[0];
