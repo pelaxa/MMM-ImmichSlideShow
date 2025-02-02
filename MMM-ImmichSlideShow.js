@@ -534,11 +534,12 @@ Module.register('MMM-ImmichSlideShow', {
       const transitionDiv = document.createElement('div');
       transitionDiv.className = 'transition';
       // Create a background color around the image is not see through
-      transitionDiv.style.backdropFilter = this.config.backdropFilter || 'blur(10px)';
+      if (this.config.showBlurredImageForBlackBars) {
+        transitionDiv.style.backdropFilter = this.config.backdropFilter || 'blur(10px)';
+      }
 
       if (this.config.backgroundSize == 'contain' && this.config.showBlurredImageForBlackBars) {
         this.imagesDiv.style.backgroundImage = `url("${image.src}")`;
-        this.imagesDiv.style.backgroundPosition = 'center';
       } else {
         this.imagesDiv.style.backgroundColor = this.config.backgroundColor || 'rgba(0,0,0,0.5)';
       }
@@ -731,12 +732,16 @@ Module.register('MMM-ImmichSlideShow', {
             imageinfo.people.forEach((people, idx) => {
               const personName = people.name || '?';
 
-              // Add a comma between the people's names, and if skip is set do not add comma for people that have no name
-              if (peopleName.length > 0 && idx > 0 && (prop=='people' || (prop=='people_skip' && personName.length > 0))) {
-                peopleName += ', ';
+              // Person name must be greater than 1 since at min it would be set to ?
+              // Only add people name if it is set or we are not skipping
+              if ((prop=='people' || (prop=='people_skip' && personName.length > 1))) {
+                 // Add a comma between the people's names if not the first
+                 if (peopleName.length > 0 && idx > 0 ) {
+                  peopleName += ', ';
+                }
+                peopleName += personName;
               }
 
-              peopleName += personName;
               if (people.birthDate && this.config.activeImmichConfig.imageInfo.includes('age')) {
                 peopleName += `(${this.getAgeFromDate(people.birthDate, imageDate)})`
               }

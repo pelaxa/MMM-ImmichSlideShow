@@ -214,7 +214,7 @@ The following properties can be configured:
 		</tr>
     	<tr>
 			<td><code>backdropFilter</code></td>
-			<td>The filter to apply to the background when the image does not cover the entire screen.  Useful when <code>showBlurredImageForBlackBars</code> is set to true<br>
+			<td>The filter to apply to the background when the image does not cover the entire screen.  Only applies to when <code>showBlurredImageForBlackBars</code> is set to true<br>
         This can be set to any valid <a target="backdrop_filter" href="https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter">CSS backdrop-filter</a> value (e.g. 'blur(10px)')<br>
 				<br><b>Example:</b> <code>'blur(10px)'</code>
 				<br><b>Default value:</b> <code>'blur(15px)</code>
@@ -223,7 +223,7 @@ The following properties can be configured:
 		</tr>
     	<tr>
 			<td><code>backgroundColor</code></td>
-			<td>The color of the background when the image does not cover the entire screen.<br>
+			<td>The color of the background when the image does not cover the entire screen.  Only visible if backgrounSize is set to <code>contain</code> and <code>showBlurredImageForBlackBars</code> is not set.<br>
         This can be set to a color (e.g. '#000000') or and semi-transparent color (e.g. 'rgba(0,0,0,0.5)')<br>
 				<br><b>Example:</b> <code>'rgba(0,0,0,0.5)'</code>
 				<br><b>Default value:</b> <code>'#000' (i.e. black)</code>
@@ -234,7 +234,7 @@ The following properties can be configured:
 			<td><code>backgroundSize</code></td>
 			<td>The sizing of the background image. Values can be:<br>
         <code>cover</code>: Resize the background image to cover the entire container, even if it has to stretch the image or cut a little bit off one of the edges.<br>
-        <code>contain</code>: Resize the background image to make sure the image is fully visible<br>
+        <code>contain</code>: Resize the background image to make sure the image is fully visible.  Good to use with <code>showBlurredImageForBlackBars</code>.<br>
 				<br><b>Example:</b> <code>'contain'</code>
 				<br><b>Default value:</b> <code>'cover'</code>
 				<br>This value is <b>OPTIONAL</b>
