@@ -72,7 +72,7 @@ Module.register('MMM-ImmichSlideShow', {
     // the color of the background when the image does not take up the full screen
     backgroundColor: '#000', // can also be rbga(x,y,z,alpha)
     // the filter to apply to the background.  Useful to give the background a translucent effect
-    backdropFilter: 'blur(5px)',
+    backdropFilter: 'blur(15px)',
     // the sizing of the background image
     // cover: Resize the background image to cover the entire container, even if it has to stretch the image or cut a little bit off one of the edges
     // contain: Resize the background image to make sure the image is fully visible
@@ -108,7 +108,8 @@ Module.register('MMM-ImmichSlideShow', {
       'flipY'
     ],
     transitionTimingFunction: 'cubic-bezier(.17,.67,.35,.96)',
-    animations: ['slide', 'zoomOut', 'zoomIn']
+    animations: ['slide', 'zoomOut', 'zoomIn'],
+    showBlurredImageForBlackBars: false
   },
 
   // load function
@@ -465,9 +466,10 @@ Module.register('MMM-ImmichSlideShow', {
     let wrapper = document.createElement('div');
     this.imagesDiv = document.createElement('div');
     this.imagesDiv.className = 'images';
-    // Create a background color around the image is not see through
-    this.imagesDiv.style.backgroundColor = this.config.backgroundColor || 'transparent';
-    this.imagesDiv.style.backdropFilter = this.config.backdropFilter || 'blur(10px)';
+    if (this.config.backgroundSize == 'contain' && this.config.showBlurredImageForBlackBars) {
+      this.imagesDiv.style.backgroundSize = 'cover';
+      this.imagesDiv.style.backgroundPosition = 'center';
+    }
 
     wrapper.appendChild(this.imagesDiv);
 
@@ -531,6 +533,16 @@ Module.register('MMM-ImmichSlideShow', {
 
       const transitionDiv = document.createElement('div');
       transitionDiv.className = 'transition';
+      // Create a background color around the image is not see through
+      if (this.config.showBlurredImageForBlackBars) {
+        transitionDiv.style.backdropFilter = this.config.backdropFilter || 'blur(10px)';
+      }
+
+      if (this.config.backgroundSize == 'contain' && this.config.showBlurredImageForBlackBars) {
+        this.imagesDiv.style.backgroundImage = `url("${image.src}")`;
+      } else {
+        this.imagesDiv.style.backgroundColor = this.config.backgroundColor || 'rgba(0,0,0,0.5)';
+      }
       if (this.config.transitionImages && this.config.transitions.length > 0) {
         let randomNumber = Math.floor(
           Math.random() * this.config.transitions.length
@@ -545,7 +557,7 @@ Module.register('MMM-ImmichSlideShow', {
 
       const imageDiv = this.createDiv();
       imageDiv.style.backgroundImage = `url("${image.src}")`;
-
+      
       if (this.config.showProgressBar) {
         // Restart css animation
         const oldDiv = document.getElementsByClassName('progress-inner')[0];
@@ -720,12 +732,16 @@ Module.register('MMM-ImmichSlideShow', {
             imageinfo.people.forEach((people, idx) => {
               const personName = people.name || '?';
 
-              // Add a comma between the people's names, and if skip is set do not add comma for people that have no name
-              if (peopleName.length > 0 && idx > 0 && (prop=='people' || (prop=='people_skip' && personName.length > 0))) {
-                peopleName += ', ';
+              // Person name must be greater than 1 since at min it would be set to ?
+              // Only add people name if it is set or we are not skipping
+              if ((prop=='people' || (prop=='people_skip' && personName.length > 1))) {
+                 // Add a comma between the people's names if not the first
+                 if (peopleName.length > 0 && idx > 0 ) {
+                  peopleName += ', ';
+                }
+                peopleName += personName;
               }
 
-              peopleName += personName;
               if (people.birthDate && this.config.activeImmichConfig.imageInfo.includes('age')) {
                 peopleName += `(${this.getAgeFromDate(people.birthDate, imageDate)})`
               }

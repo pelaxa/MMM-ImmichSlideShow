@@ -1,8 +1,8 @@
 # Module: Immich Slide Show
 
-This is a MagicMirror module based on <a href="https://github.com/darickc/MMM-BackgroundSlideshow">MMM-BackgroundSlideshow</a> that works with <a href="https://immich.app/">Immich</a>.
+A  MagicMirror module based on [MMM-BackgroundSlideshow](https://github.com/darickc/MMM-BackgroundSlideshow) that works with [Immich](https://immich.app/).
 
-The `MMM-ImmichSlideShow` module is designed to display images fullscreen, one at a time on a fixed interval, from <a href="https://immich.app/">Immich</a>. These images can be shown in order or at random. The images can transition from one to the other and be shown with no edge (cover) or the entire image (contain).  The configuration is also mostly matching MMM-Background.
+The `MMM-ImmichSlideShow` module is designed to display images fullscreen, one at a time on a fixed interval, from  [Immich](https://immich.app/). These images can be shown in order or at random. The images can transition from one to the other and be shown with no edge (cover) or the entire image (contain). Several configurations can be made all at once and dynamically activated via API calls using [MMM-Remote-Control](https://github.com/Jopyth/MMM-Remote-Control).
 
 
 <img src="images/screenshot.gif" style="width: 600px;" />
@@ -214,16 +214,16 @@ The following properties can be configured:
 		</tr>
     	<tr>
 			<td><code>backdropFilter</code></td>
-			<td>The filter to apply to the background.  This is useful when using a semi-transparent background color so that the items behind the background are filtered.<br>
+			<td>The filter to apply to the background when the image does not cover the entire screen.  Only applies to when <code>showBlurredImageForBlackBars</code> is set to true<br>
         This can be set to any valid <a target="backdrop_filter" href="https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter">CSS backdrop-filter</a> value (e.g. 'blur(10px)')<br>
 				<br><b>Example:</b> <code>'blur(10px)'</code>
-				<br><b>Default value:</b> <code>'blur(5px)</code>
+				<br><b>Default value:</b> <code>'blur(15px)</code>
 				<br>This value is <b>OPTIONAL</b>
 			</td>
 		</tr>
     	<tr>
 			<td><code>backgroundColor</code></td>
-			<td>The color of the background when the image does not cover the entire screen.<br>
+			<td>The color of the background when the image does not cover the entire screen.  Only visible if backgrounSize is set to <code>contain</code> and <code>showBlurredImageForBlackBars</code> is not set.<br>
         This can be set to a color (e.g. '#000000') or and semi-transparent color (e.g. 'rgba(0,0,0,0.5)')<br>
 				<br><b>Example:</b> <code>'rgba(0,0,0,0.5)'</code>
 				<br><b>Default value:</b> <code>'#000' (i.e. black)</code>
@@ -233,18 +233,8 @@ The following properties can be configured:
     	<tr>
 			<td><code>backgroundSize</code></td>
 			<td>The sizing of the background image. Values can be:<br>
-        cover: Resize the background image to cover the entire container, even if it has to stretch the image or cut a little bit off one of the edges.<br>
-        contain: Resize the background image to make sure the image is fully visible<br>
-				<br><b>Example:</b> <code>'contain'</code>
-				<br><b>Default value:</b> <code>'cover'</code>
-				<br>This value is <b>OPTIONAL</b>
-			</td>
-		</tr>
-    	<tr>
-			<td><code>backgroundSize</code></td>
-			<td>The sizing of the background image. Values can be:<br>
-        cover: Resize the background image to cover the entire container, even if it has to stretch the image or cut a little bit off one of the edges.<br>
-        contain: Resize the background image to make sure the image is fully visible<br>
+        <code>cover</code>: Resize the background image to cover the entire container, even if it has to stretch the image or cut a little bit off one of the edges.<br>
+        <code>contain</code>: Resize the background image to make sure the image is fully visible.  Good to use with <code>showBlurredImageForBlackBars</code>.<br>
 				<br><b>Example:</b> <code>'contain'</code>
 				<br><b>Default value:</b> <code>'cover'</code>
 				<br>This value is <b>OPTIONAL</b>
@@ -255,6 +245,14 @@ The following properties can be configured:
 			<td>Determines where the background image is placed if it doesn't fill the whole screen (i.e. backgroundSize is 'contain'). Module already defaults to 'center', so the most useful options would be: 'top' 'bottom' 'left' or 'right'. However, any valid value for CSS background-position could be used.<br>
 				<br><b>Example:</b> <code>'top'</code>
 				<br><b>Default value:</b> <code>'center'</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+    	<tr>
+			<td><code>showBlurredImageForBlackBars</code></td>
+			<td>Boolean value indicating whether to display the same image in the background but blurred out (actually <code>backdropFilter</code> is applied) since of showing the background color.  Not recommended when <code>backgroundAnimaitonEnabled</code> is set to true.<br>
+				<br><b>Example:</b> <code>true</code>
+				<br><b>Default value:</b> <code>false</code>
 				<br>This value is <b>OPTIONAL</b>
 			</td>
 		</tr>
