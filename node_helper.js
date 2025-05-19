@@ -33,6 +33,7 @@ module.exports = NodeHelper.create({
     // this.expressInstance = this.expressApp;
     this.imageList = [];
     this.index = 0;
+    Log.debug(LOG_PREFIX + 'initialized index to zero!' + this.index);
     this.config;
     this.pictureDate = 0;
   },
@@ -137,7 +138,7 @@ module.exports = NodeHelper.create({
       return;
     }
     Log.debug(LOG_PREFIX + 'GOT new active config', this.config.activeImmichConfig);
-    await immichApi.init(config.activeImmichConfig, isActiveConfigChange);
+    await immichApi.init(config.activeImmichConfig, this.expressApp, isActiveConfigChange);
    
     // create an empty main image list
     this.imageList = [];
@@ -183,6 +184,7 @@ module.exports = NodeHelper.create({
       Log.debug(LOG_PREFIX + this.imageList.length + ' images found');
       if (this.index < 0 || this.index >= this.imageList.length) {
         //Set this index back to zero only if necessary
+        Log.debug(LOG_PREFIX + 'index is out of bounds, setting to zero (gatherImageList)...' + this.index+ '/' + this.imageList.length)
         this.index = 0;
       }
 
@@ -213,6 +215,7 @@ module.exports = NodeHelper.create({
         // Force the index to 0 so that we start from the beginning
         // and calling this function again will not get stuck in a loop
         if (this.index >= this.imageList.length) {
+          Log.debug(LOG_PREFIX + 'index is out of bounds.  Setting to zero (displayImage)...' + this.index+ '/' + this.imageList.length);
           this.index = 0;
         }
         // Set the last Image to null so we cannot load it and have to progress
@@ -256,7 +259,8 @@ module.exports = NodeHelper.create({
           this.lastImageLoaded.people = assetInfo.people;
         }
       }
-      this.lastImageLoaded.data = await immichApi.getBase64EncodedAsset(image.id);
+      // this.lastImageLoaded.data = await immichApi.getBase64EncodedAsset(image.id);
+      this.lastImageLoaded.data = immichApi.getImageLink(image.id);
     }
 
     // Only send a notification if we have the new image loaded
@@ -276,6 +280,7 @@ module.exports = NodeHelper.create({
       // reloadOnLoop is only set when the pictures progress naturally, not when
       // next command is received
       if (!reloadOnLoop && this.index >= this.imageList.length) {
+        Log.debug(LOG_PREFIX + 'Resetting image index(getNextImage)...' + this.index+ '/' + this.imageList.length);
         this.index = 0;
       }
     }
@@ -289,7 +294,7 @@ module.exports = NodeHelper.create({
 
     // Case of first image, go to end of array.
     if (this.index < 0) {
-      Log.debug('Reaching beginning of pictures! looping around...')
+      Log.debug(LOG_PREFIX + 'Reaching beginning of pictures! looping around (getPrevImage)...' + this.index+ '/' + this.imageList.length)
       this.index = this.imageList.length-1;
     }
     this.displayImage();
@@ -355,9 +360,10 @@ module.exports = NodeHelper.create({
         // the MagicMirror startup banner to get stuck sometimes.
         setTimeout(() => {
           if (isActiveConfigChange) {
-            this.lastImageLoaded = true;
+            this.changeActiveConfig(config);
+          } else {
+            this.gatherImageList(config, false);
           }
-          this.gatherImageList(config, isActiveConfigChange);
         }, 200);
       } else {
         // Show the current image for now, and then the new client will fall in sync with existing clients
@@ -377,6 +383,12 @@ module.exports = NodeHelper.create({
       Log.debug(LOG_PREFIX + 'Notification is unexpected and not handled!');
     }
     Log.debug(LOG_PREFIX + 'Notification Processed!');
+  },
+
+  changeActiveConfig: async function(config) {
+    this.lastImageLoaded = true;
+    await this.gatherImageList(config, true);
+    this.displayImage();
   }
 });
 

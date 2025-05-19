@@ -2,8 +2,10 @@
 // const Log = console;
 const Log = require('logger');
 const axios = require('axios');
+const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const LOG_PREFIX = 'MMM-ImmichSlideShow :: immichApi :: ';
+const IMMICH_PROXY_URL = '/immichslideshow/';
 
 const immichApi = {
     apiUrls: {
@@ -39,15 +41,15 @@ const immichApi = {
     },
 
     apiLevel: 'v1_118',
-    baseUrl: '/api',
+    apiBaseUrl: '/api',
     http: null,
 
-    init: async function(config, force) {
+    init: async function(config, expressApp, force) {
 
         if (this.http === null || force) {
             // create and axis instance
             this.http = axios.create({
-              baseURL: config.url + this.baseUrl,
+              baseURL: config.url + this.apiBaseUrl,
               timeout: config.timeout,
               validateStatus: function (status) {
                 return status >= 200 && status < 499; // default
@@ -108,6 +110,23 @@ const immichApi = {
             } else {
                 throw('Failed to get Immich version.  Cannot proceed.');
             }
+
+            // Now setup our proxy service
+            expressApp.use(IMMICH_PROXY_URL, createProxyMiddleware({
+                target: config.url,
+                changeOrigin: true,
+                // logger: Log,
+                proxyTimeout: config.timeout,
+                headers: {
+                    'x-api-key': config.apiKey,
+                    'accept': 'application/octet-stream'
+                },
+                pathRewrite: (path, req) => {
+                    const pathArray = path.split('/');
+                    const imageId = pathArray[pathArray.length-1];
+                    return this.apiBaseUrl + this.apiUrls[this.apiLevel]['assetDownload'].replace('{id}',imageId);
+                }
+            }));
 
             Log.debug(LOG_PREFIX + 'Server Version is', this.apiLevel, JSON.stringify(serverVersion));
         }
@@ -235,6 +254,10 @@ const immichApi = {
         }
 
         return base64Image;
+    },
+
+    getImageLink: function(imageId) {
+        return IMMICH_PROXY_URL + imageId;
     }
 
 

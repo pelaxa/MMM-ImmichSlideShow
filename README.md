@@ -172,14 +172,6 @@ The following properties can be configured:
 			</td>
 		</tr>
 		<tr>
-			<td><code>imageCompression</code></td>
-			<td>A value between 0 and 1 that determines the compression level of JPEG images when images need to be converted (e.g. HEIC images)<br>
-				<br><b>Example:</b> <code>0.7</code>
-				<br><b>Default value:</b> <code>0.7</code>
-				<br>This value is <b>OPTIONAL</b>
-			</td>
-		</tr>
-		<tr>
 			<td><code>imageInfoLocation</code></td>
 			<td>String value, determines which corner of the screen the image info div should be displayed in.  Possible values are: bottomRight, bottomLeft, topLeft, topRight<br>
 				<br><b>Example:</b> <code>topLeft</code>
@@ -391,11 +383,19 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>imageInfo</code></td>
-			<td>A list of image properties to display in the image info div.  Possible values are : <code>date</code> (EXIF date from image), <code>name</code> (image name), <code>since</code> (how long ago the picture was taken), <code>geo</code> (the city and country where the picture was taken if available), <code>people</code> (the name of the people in the picture. Use <code>people_skip</code> instead to not show extra separators for recognized faces with no name), <code>age</code> (The age of the people at the time the photo was taken.  Only works if <code>people</code> is also added), and <code>desc</code> (The description of the image if one is available).
+			<td>A list of image properties to display in the image info div.  Possible values are : <code>date</code> (EXIF date from image), <code>name</code> (image name), <code>since</code> (how long ago the picture was taken), <code>geo</code> (the city and country where the picture was taken if available), <code>people</code> (the name of the people in the picture. Use <code>people_skip</code> instead to not show extra separators for recognized faces with no name), <code>age</code> (The age of the people at the time the photo was taken.  Only works if <code>people</code> is also added), and <code>desc</code> (The description of the image if one is available), <code>count</code> (The current image number and total image count. Not displayed by default after 1.4.0+).
 			The values can be provided as an array of strings or as a space separated list string and the order that you provide this info is how it will display (top to bottom).<br/>
 			<b>Note</b>: providing too many options here may take up a large portion of the screen.<br/>
 				<br><b>Example:</b> <code>'date name people age'</code> or <code>[ 'date', 'name', 'people', 'age']</code>
-				<br><b>Default value:</b> <code>['date', 'since']</code>
+				<br><b>Default value:</b> <code>['date', 'since', 'count']</code>
+				<br>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
+		<tr>
+			<td><code>dateFormat</code></td>
+			<td>String value, indicates the format of the date in imageInfo. See <a href="https://momentjs.com/docs/#/displaying/format/">momentjs</a> for more info on specifying the format.<br>
+				<br><b>Example:</b> <code>MMMM D, YYYY HH:mm</code>
+				<br><b>Default value:</b> <code>dddd MMMM D, YYYY HH:mm</code>
 				<br>This value is <b>OPTIONAL</b>
 			</td>
 		</tr>
@@ -417,12 +417,13 @@ modules: [
             url: 'https://myimmich.server:443',
             mode: 'memory',
             imageInfo: 'date since geo people',
+			dateFormat: 'MMMM YYYY'
           },
           {
             albumId: 'xxxxxxx-yyyy-zzzz-aaaa-bbbbbbbb',
             mode: 'album',
             slideshowSpeed: 6000,
-            imageInfo: 'date since geo',
+            imageInfo: ['date','since','geo','count'],
           }
         ],
         activeImmichConfigIndex: 0,

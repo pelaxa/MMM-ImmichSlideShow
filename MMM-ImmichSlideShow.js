@@ -16,6 +16,7 @@ const LOG_PREFIX = 'MMM-ImmichSlideShow :: module :: ';
 const MODE_MEMORY = 'memory';
 const MODE_ALBUM = 'album';
 const MODE_SEARCH = 'search'; // TODO
+const DEFAULT_DATE_FORMAT = 'dddd MMMM D, YYYY HH:mm';
 
 Module.register('MMM-ImmichSlideShow', {
   // Min version of MM2 required
@@ -50,7 +51,9 @@ Module.register('MMM-ImmichSlideShow', {
     // whether to sort in ascending (default) or descending order
     sortImagesDescending: false,
     // a comma separated list of values to display: name, date, since, geo
-    imageInfo: ['date', 'since'],
+    imageInfo: ['date', 'since', 'count'],
+    // the date format to use for imageInfo
+    dateFormat: DEFAULT_DATE_FORMAT
   },
 
   // Default module config.
@@ -61,8 +64,6 @@ Module.register('MMM-ImmichSlideShow', {
     validImageFileExtensions: 'bmp,jpg,jpeg,gif,png,heic',
     // show a panel containing information about the image currently displayed.
     showImageInfo: false,
-    // The compression level of the resulting jpeg
-    imageCompression: 0.7,
     // location of the info div
     imageInfoLocation: 'bottomRight', // Other possibilities are: bottomLeft, topLeft, topRight
     // remove the file extension from image name
@@ -202,6 +203,10 @@ Module.register('MMM-ImmichSlideShow', {
     // Now loop through and make sure that all configs have all properties by copying from the 
     // first config and overriding with the new config
     this.config.immichConfigs.forEach((element,idx) => {
+      // If the entry does not have a dateFormat specified, set it to default
+      if (!element.hasOwnProperty('dateFormat')) {
+        element.dateFormat = DEFAULT_DATE_FORMAT;
+      }
       this.config.immichConfigs[idx] = {...this.config.immichConfigs[0],...element};
       // ensure image order is in lower case
       this.config.immichConfigs[idx].sortImagesBy = this.config.immichConfigs[idx].sortImagesBy.toLowerCase();
@@ -224,25 +229,6 @@ Module.register('MMM-ImmichSlideShow', {
       this.config.transitionSpeed = '0';
     }
 
-    if (!this.config.imageCompression) {
-      this.config.imageCompression = 0.7;
-    } else {
-      try {
-        const compressionVal = parseFloat(this.config.imageCompression);
-        if (compressionVal < 0 || compressionVal > 1) {
-          Log.warn(
-            LOG_PREFIX + 'imageCompression should be between 0 and 1!  Defaulting to 0.7'
-          );
-          this.config.imageCompression = 0.7;
-        }
-      } catch (e) {
-        Log.warn(
-          LOG_PREFIX + 'imageCompression should be a decimal value between 0 and 1!  Defaulting to 0.7'
-        );
-        this.config.imageCompression = 0.7;
-      }
-    }
-
     // Lets make sure the backgroundAnimation duration matches the slideShowSpeed unless it has been
     // overridden
     if (this.config.backgroundAnimationDuration === '1s') {
@@ -255,78 +241,6 @@ Module.register('MMM-ImmichSlideShow', {
     this.browserSupportsExifOrientationNatively = CSS.supports(
       'image-orientation: from-image'
     );
-  },
-
-  /**
-   * This funciton checks the value of imageInfo and process it to convert it
-   * to an array
-   * @param {array/string} imageInfo 
-   * @returns 
-   */
-  fixImageInfo: function(imageInfo, index) {
-    //validate imageinfo property.  This will make sure we have at least 1 valid value
-    const imageInfoValues = '\\bname\\b|\\bdate\\b|\\bsince\\b|\\bgeo\\b|\\bpeople\\b|\\bpeople_skip\\b|\\bage\\b|\\bdesc\\b|';
-    const imageInfoRegex = new RegExp(imageInfoValues,'gi');
-    // Set the log prefix
-    const prefix = LOG_PREFIX + `config[${index}]: `;
-        
-    let setToDefault = false;
-    let newImageInfo = [];
-    if (
-      Array.isArray(imageInfo)
-    ) {
-      for (const [i, infoItem] of Object.entries(imageInfo)) {
-        console.debug(prefix + 'Checking imageInfo: ', i, infoItem);
-        // Skip any entries that do not have a matching value
-        if (imageInfoValues.substring(infoItem.trim().toLowerCase())) {
-          // Make sure to trim the entries and make them lowercase
-          newImageInfo.push(infoItem.trim().toLowerCase());
-        } else {
-          console.warn(prefix + `invalid image info item '${infoItem}'`);
-        }
-      }
-      // If nothing matched, then use default
-      if (newImageInfo.length === 0) {
-        setToDefault = true;
-      }
-    } else if (!imageInfoRegex.test(imageInfo)) {
-      Log.warn(
-        prefix + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
-      );
-      setToDefault = true;
-    } else {
-      // convert to lower case and replace any spaces with , to make sure we get an array back
-      // even if the user provided space separated values
-      newImageInfo = imageInfo
-        .toLowerCase()
-        .replace(/\s/g, ',')
-        .split(',');
-      // now filter the array to only those that have values
-      newImageInfo = newImageInfo.filter((n) => n);
-    }
-
-    // The imageInfo params had invalid values in them
-    if (setToDefault) {
-      // Use name as the default
-      newImageInfo = ['date'];
-    } else {
-      if (newImageInfo.includes('people') && newImageInfo.includes('people_skip')) {
-        Log.warn(
-          prefix + 'imageInfo should not include both people and people_skip.  Using people!'
-        );
-        // Remove people_skip since people is already included
-        newImageInfo = newImageInfo.filter((n) => n !== 'people_skip');
-      }
-      if (newImageInfo.includes('age') && !(newImageInfo.includes('people') || newImageInfo.includes('people_skip'))) {
-        Log.warn(
-          prefix + 'imageInfo includes age but not people.  Removing age from imageInfo!'
-        );
-        // Remove age since people is not included
-        newImageInfo = newImageInfo.filter((n) => n !== 'age');
-      }
-    }
-
-    return newImageInfo;
   },
 
   getScripts: function () {
@@ -433,6 +347,7 @@ Module.register('MMM-ImmichSlideShow', {
     if (!!payload.identifier && payload.identifier === this.identifier) {
       // check this is for this module based on the woeid
       if (notification === 'IMMICHSLIDESHOW_READY') {
+        this.suspend();
         this.resume();
       } else if (notification === 'IMMICHSLIDESHOW_FILELIST') {
         // bubble up filelist notifications
@@ -459,37 +374,6 @@ Module.register('MMM-ImmichSlideShow', {
         Log.warn(LOG_PREFIX + 'received an unexpected module notification: ' + notification);
       }
     }    
-  },
-
-  // Override dom generator.
-  getDom: function () {
-    let wrapper = document.createElement('div');
-    this.imagesDiv = document.createElement('div');
-    this.imagesDiv.className = 'images';
-    if (this.config.backgroundSize == 'contain' && this.config.showBlurredImageForBlackBars) {
-      this.imagesDiv.style.backgroundSize = 'cover';
-      this.imagesDiv.style.backgroundPosition = 'center';
-    }
-
-    wrapper.appendChild(this.imagesDiv);
-
-    if (this.config.showImageInfo) {
-      this.imageInfoDiv = this.createImageInfoDiv(wrapper);
-    }
-
-    if (this.config.showProgressBar) {
-      this.createProgressbarDiv(wrapper, this.config.activeImmichConfig.slideshowSpeed);
-    }
-
-    if (this.config.activeImmichConfig.apiKey.length == 0) {
-      Log.error(
-        LOG_PREFIX + 'Missing required parameter apiKey.'
-      );
-    } else {
-      this.updateImageList();
-    }
-
-    return wrapper;
   },
 
   createDiv: function () {
@@ -626,8 +510,7 @@ Module.register('MMM-ImmichSlideShow', {
             } catch (e) {
               Log.debug(
                 LOG_PREFIX + 'Failed to parse dateTime: ' +
-                dateTime +
-                ' to format YYYY:MM:DD HH:mm:ss'
+                dateTime
               );
               dateTime = 'Invalid date';
             }
@@ -685,11 +568,12 @@ Module.register('MMM-ImmichSlideShow', {
 
   updateImageInfo: function (imageinfo, imageDate) {
     let imageProps = [];
-    this.config.activeImmichConfig.imageInfo.forEach((prop, idx) => {
+    const config = this.config.activeImmichConfig;
+    config.imageInfo.forEach((prop, idx) => {
       switch (prop) {
         case 'date': // show date image was taken
           if (imageDate && imageDate !== 'Invalid date') {
-            imageProps.push(imageDate.format('dddd MMMM D, YYYY HH:mm'));
+            imageProps.push(imageDate.format(config.dateFormat));
           }
           break;
 
@@ -762,6 +646,8 @@ Module.register('MMM-ImmichSlideShow', {
             imageProps.push(imageinfo.exifInfo.description);
           }
           break;
+        case 'count': // show image count
+          break;
         default:
           Log.warn(
             LOG_PREFIX + prop +
@@ -770,7 +656,9 @@ Module.register('MMM-ImmichSlideShow', {
       }
     });
 
-    let innerHTML = `<header class="infoDivHeader">${imageinfo.index} of ${imageinfo.total}</header>`;
+    // Log.debug('config.imageInfo[count]', config.imageInfo.includes('count'));
+    // Log.dir('config.imageInfo', config.imageInfo);
+    let innerHTML = config.imageInfo.includes('count') ? `<header class="infoDivHeader">${imageinfo.index} of ${imageinfo.total}</header>`: '';
     imageProps.forEach((val, idx) => {
       innerHTML += val + '<br/>';
     });
@@ -847,5 +735,108 @@ Module.register('MMM-ImmichSlideShow', {
       age = `${Math.floor(d)}d`
     }
     return age;
-  }
+  },
+
+   /**
+   * This funciton checks the value of imageInfo and process it to convert it
+   * to an array
+   * @param {array/string} imageInfo 
+   * @returns 
+   */
+  fixImageInfo: function(imageInfo, index) {
+    //validate imageinfo property.  This will make sure we have at least 1 valid value
+    const imageInfoValues = '\\bname\\b|\\bdate\\b|\\bsince\\b|\\bgeo\\b|\\bpeople\\b|\\bpeople_skip\\b|\\bage\\b|\\bdesc\\b|\\bcount\\b|';
+    const imageInfoRegex = new RegExp(imageInfoValues,'gi');
+    // Set the log prefix
+    const prefix = LOG_PREFIX + `config[${index}]: `;
+        
+    let setToDefault = false;
+    let newImageInfo = [];
+    if (
+      Array.isArray(imageInfo)
+    ) {
+      for (const [i, infoItem] of Object.entries(imageInfo)) {
+        console.debug(prefix + 'Checking imageInfo: ', i, infoItem);
+        // Skip any entries that do not have a matching value
+        if (imageInfoValues.substring(infoItem.trim().toLowerCase())) {
+          // Make sure to trim the entries and make them lowercase
+          newImageInfo.push(infoItem.trim().toLowerCase());
+        } else {
+          console.warn(prefix + `invalid image info item '${infoItem}'`);
+        }
+      }
+      // If nothing matched, then use default
+      if (newImageInfo.length === 0) {
+        setToDefault = true;
+      }
+    } else if (!imageInfoRegex.test(imageInfo)) {
+      Log.warn(
+        prefix + 'showImageInfo is set, but imageInfo does not have a valid value. Using date as default!'
+      );
+      setToDefault = true;
+    } else {
+      // convert to lower case and replace any spaces with , to make sure we get an array back
+      // even if the user provided space separated values
+      newImageInfo = imageInfo
+        .toLowerCase()
+        .replace(/\s/g, ',')
+        .split(',');
+      // now filter the array to only those that have values
+      newImageInfo = newImageInfo.filter((n) => n);
+    }
+
+    // The imageInfo params had invalid values in them
+    if (setToDefault) {
+      // Use name as the default
+      newImageInfo = this.defaultConfig.imageInfo;
+    } else {
+      if (newImageInfo.includes('people') && newImageInfo.includes('people_skip')) {
+        Log.warn(
+          prefix + 'imageInfo should not include both people and people_skip.  Using people!'
+        );
+        // Remove people_skip since people is already included
+        newImageInfo = newImageInfo.filter((n) => n !== 'people_skip');
+      }
+      if (newImageInfo.includes('age') && !(newImageInfo.includes('people') || newImageInfo.includes('people_skip'))) {
+        Log.warn(
+          prefix + 'imageInfo includes age but not people.  Removing age from imageInfo!'
+        );
+        // Remove age since people is not included
+        newImageInfo = newImageInfo.filter((n) => n !== 'age');
+      }
+    }
+
+    return newImageInfo;
+  },
+
+  // Override dom generator.
+  getDom: function () {
+    let wrapper = document.createElement('div');
+    this.imagesDiv = document.createElement('div');
+    this.imagesDiv.className = 'images';
+    if (this.config.backgroundSize == 'contain' && this.config.showBlurredImageForBlackBars) {
+      this.imagesDiv.style.backgroundSize = 'cover';
+      this.imagesDiv.style.backgroundPosition = 'center';
+    }
+
+    wrapper.appendChild(this.imagesDiv);
+
+    if (this.config.showImageInfo) {
+      this.imageInfoDiv = this.createImageInfoDiv(wrapper);
+    }
+
+    if (this.config.showProgressBar) {
+      this.createProgressbarDiv(wrapper, this.config.activeImmichConfig.slideshowSpeed);
+    }
+
+    if (this.config.activeImmichConfig.apiKey.length == 0) {
+      Log.error(
+        LOG_PREFIX + 'Missing required parameter apiKey.'
+      );
+    } else {
+      this.updateImageList();
+    }
+
+    return wrapper;
+  },
 });
