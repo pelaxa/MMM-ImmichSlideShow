@@ -1,6 +1,6 @@
 
-const Log = console;
-// const Log = require('logger');
+// const Log = console;
+const Log = require('logger');
 const axios = require('axios');
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
