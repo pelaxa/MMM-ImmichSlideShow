@@ -81,7 +81,7 @@ module.exports = NodeHelper.create({
   },
 
   sortImageList: function (imageList, sortBy, sortDescending) {
-    Log.debug(LOG_PREFIX + 'sortImageList :: imageList is Array?', Array.isArray(imageList));
+    Log.log(LOG_PREFIX + 'sortImageList :: imageList is Array?', Array.isArray(imageList), sortBy, sortDescending);
     let sortedList = imageList;
     switch (sortBy) {
       case 'created':
@@ -93,9 +93,9 @@ module.exports = NodeHelper.create({
         sortedList = imageList.sort(this.sortByModified);
         break;
       case 'taken':
-          // Log.log(LOG_PREFIX + 'Sorting by taken date...');
-          sortedList = imageList.sort(this.sortByTaken);
-          break;
+        // Log.log(LOG_PREFIX + 'Sorting by taken date...');
+        sortedList = imageList.sort(this.sortByTaken);
+        break;
       case 'name':
         // sort by name
         // Log.log(LOG_PREFIX + 'Sorting by name...');
@@ -164,6 +164,9 @@ module.exports = NodeHelper.create({
       } else {
         Log.error(LOG_PREFIX + 'could not find the specified album in Immich.  Please check your configuration again');
       }
+    } else if (config.activeImmichConfig.mode === 'search') {
+      // Search mode
+      this.imageList = await immichApi.searchAssets(config.activeImmichConfig.query, config.activeImmichConfig.querySize);
     } else {
       // Assume we are in memory mode
       this.imageList = await immichApi.getMemoryLaneAssets(config.activeImmichConfig.numDaysToInclude);

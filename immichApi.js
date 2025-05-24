@@ -1,6 +1,6 @@
 
-// const Log = console;
-const Log = require('logger');
+const Log = console;
+// const Log = require('logger');
 const axios = require('axios');
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
@@ -37,10 +37,20 @@ const immichApi = {
             assetDownload: '/assets/{id}/thumbnail?size=preview',
             serverInfoUrl: '/server/version',
             search: '/search/smart'
+        },
+        v1_133: {
+            previousVersion: 'v1_118',
+            albums: '/albums',
+            albumInfo: '/albums/{id}',
+            memoryLane: '/memories',
+            assetInfo: '/assets/{id}',
+            assetDownload: '/assets/{id}/thumbnail?size=preview',
+            serverInfoUrl: '/server/version',
+            search: '/search/smart'
         }
     },
 
-    apiLevel: 'v1_118',
+    apiLevel: 'v1_133',
     apiBaseUrl: '/api',
     http: null,
 
@@ -192,8 +202,11 @@ const immichApi = {
         Log.debug(LOG_PREFIX + 'numDaysToInclude: ', numDays);
 
         for (let i=0; i < numDays; i++) {
-            // as of version 1.82, the API for memory lane has changed.
-            let mlParams = {
+            // as of version 1.133, the API for memory lane has changed.
+            const mlParams = this.apiLevel == 'v1_133' ? {
+                for: today.toISOString(),
+                type: 'on_this_day'
+            } : {
                 day: today.getDate(),
                 month: today.getMonth()+1
             }
@@ -215,6 +228,27 @@ const immichApi = {
             }
             // set to previous date to catch the next date
             today.setDate(today.getDate()-1);
+        }
+
+        return imageList;
+    },
+
+    searchAssets: async function (query, size) {
+        let imageList = [];
+            
+        Log.debug(LOG_PREFIX + 'Searching for images: ', query, 'SIZE: ', size);
+        try{
+            const searchQuery = {...query, size: size};
+            Log.debug(LOG_PREFIX + 'Searching query: ', searchQuery);
+            const response = await this.http.post(this.apiUrls[this.apiLevel]['search'], searchQuery, {responseType: 'json'});
+            Log.info(LOG_PREFIX + 'response', response);
+            if (response.status === 200) {
+                imageList = response.data.assets.items;
+            } else {
+                Log.error(LOG_PREFIX + 'unexpected response from Immich while searching assets', response.status, response.statusText);
+            }
+        } catch(e) {
+            Log.error(LOG_PREFIX + 'Oops!  Exception while fetching images from Immich (search)', e.message);
         }
 
         return imageList;

@@ -9,7 +9,7 @@ The `MMM-ImmichSlideShow` module is designed to display images fullscreen, one a
 
 ## Dependencies / Requirements
 
-This module requires no special dependencies besides a working <a href="https://immich.app/">Immich</a> instance.
+This module requires no special dependencies besides a working <a target="immich" href="https://immich.app/">Immich</a> instance.
 
 ## Operation
 
@@ -339,7 +339,7 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>mode</code></td>
-			<td>The mode of operation for the module.  Valid options are 'memory' or 'album' and depending on which is chosen, additional settings are required.<br>
+			<td>The mode of operation for the module.  Valid options are 'memory', 'album', or 'search'(Experimental) and depending on which is chosen, additional settings are required.<br>
 				<br><b>Example:</b> <code>memory</code> for memory mode
 				<br>This value is <b>REQUIRED</b>
 			</td>
@@ -363,6 +363,21 @@ The following properties can be configured:
 			<td>The id of the album to show pictures from.  This name is case sensitive and should match the album name in Immich exactly.  Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
 				<br><b>Example:</b> <code>Family Trip 2023</code>
 				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumId</i> is not provided.
+			</td>
+		</tr>
+		<tr>
+			<td><code>query</code></td>
+			<td>The query object used to search for images.  This is an advanced feature and the expected value here is meant to be a JSON matching what Immich currently supports.  Refer to: <a target="immich_api" href="https://immich.app/docs/api/search-smart">Immich Smart Search</a> for more details.<br>
+				<br><b>Example:</b> <code>{query: 'animals', city: 'Montreal'}</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i>.
+			</td>
+		</tr>
+		<tr>
+			<td><code>querySize</code></td>
+			<td>The number of images to return when in <i>search</i> mode.  Although, this can also be specified as a <i>size</i> parameter in <i>query</i>, the value specified here overwrites that value.  This value must be between 1 and 1000.<br>
+				<br><b>Example:</b> <code>150</code>
+				<br><b>Default value:</b> <code>100</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i>.
 			</td>
 		</tr>
 		<tr>
@@ -393,7 +408,7 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>dateFormat</code></td>
-			<td>String value, indicates the format of the date in imageInfo. See <a href="https://momentjs.com/docs/#/displaying/format/">momentjs</a> for more info on specifying the format.<br>
+			<td>String value, indicates the format of the date in imageInfo. See <a target="moment" href="https://momentjs.com/docs/#/displaying/format/">momentjs</a> for more info on specifying the format.<br>
 				<br><b>Example:</b> <code>MMMM D, YYYY HH:mm</code>
 				<br><b>Default value:</b> <code>dddd MMMM D, YYYY HH:mm</code>
 				<br>This value is <b>OPTIONAL</b>

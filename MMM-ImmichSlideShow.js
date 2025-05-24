@@ -15,7 +15,7 @@
 const LOG_PREFIX = 'MMM-ImmichSlideShow :: module :: ';
 const MODE_MEMORY = 'memory';
 const MODE_ALBUM = 'album';
-const MODE_SEARCH = 'search'; // TODO
+const MODE_SEARCH = 'search';
 const DEFAULT_DATE_FORMAT = 'dddd MMMM D, YYYY HH:mm';
 
 Module.register('MMM-ImmichSlideShow', {
@@ -163,43 +163,6 @@ Module.register('MMM-ImmichSlideShow', {
       this.config.immichConfigs[0] = {...this.defaultConfig,...this.config.immichConfigs[0]};
     }
 
-    // Validate that we have enough for the first config.  Since this will be used as the base
-    // for all other configs, then validating this alone should be good enough
-    const firstConfig = this.config.immichConfigs[0];
-    //validate immich properties
-    if (firstConfig.mode && firstConfig.mode.trim().toLowerCase() === MODE_MEMORY) {
-      firstConfig.mode = MODE_MEMORY
-      // Make sure we have numDaysToInclude
-      if (!firstConfig.numDaysToInclude || isNaN(firstConfig.numDaysToInclude)) {
-        Log.warn(
-          LOG_PREFIX + 'memory mode set, but numDaysToInclude does not have a valid value'
-        );
-      }
-    } else if (firstConfig.mode && firstConfig.mode.trim().toLowerCase() === MODE_ALBUM) {
-      firstConfig.mode = MODE_ALBUM
-      // Make sure we have album name or album id
-      if ((!firstConfig.albumId || firstConfig.albumId.length === 0) && (!firstConfig.albumName || firstConfig.albumName.length === 0)) {
-        Log.warn(
-          LOG_PREFIX + 'album mode set, but albumId or albumName do not have a valid value'
-        );
-      } else if (firstConfig.albumId && firstConfig.albumName) {
-        Log.warn(
-          LOG_PREFIX + 'album mode set, but albumId or albumName do not have a valid value'
-        );
-        // This is a double check to make sure we only present one of these properties to
-        // node_helper
-        if (firstConfig.albumId) {
-          firstConfig.albumName = null;
-        } else {
-          firstConfig.albumId = null;
-        }
-      }
-    } else {
-      Log.warn(
-        LOG_PREFIX + 'memory mode not set to valid value, assuming memory mode...'
-      );
-    }
-
     // Now loop through and make sure that all configs have all properties by copying from the 
     // first config and overriding with the new config
     this.config.immichConfigs.forEach((element,idx) => {
@@ -208,6 +171,60 @@ Module.register('MMM-ImmichSlideShow', {
         element.dateFormat = DEFAULT_DATE_FORMAT;
       }
       this.config.immichConfigs[idx] = {...this.config.immichConfigs[0],...element};
+      const curConfig = this.config.immichConfigs[idx];
+      //validate immich properties
+      if (curConfig.mode && curConfig.mode.trim().toLowerCase() === MODE_MEMORY) {
+        curConfig.mode = MODE_MEMORY
+        // Make sure we have numDaysToInclude
+        if (!curConfig.numDaysToInclude || isNaN(curConfig.numDaysToInclude) || curConfig.numDaysToInclude < 1) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': memory mode set, but numDaysToInclude does not have a valid value'
+          );
+          curConfig.numDaysToInclude = this.defaultConfig.numDaysToInclude;
+        } else if (curConfig.numDaysToInclude > 14) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': numDaysToInclude cannot exceet 14 days for memory mode'
+          );
+          curConfig.numDaysToInclude = 14;
+        }
+      } else if (curConfig.mode && curConfig.mode.trim().toLowerCase() === MODE_ALBUM) {
+        curConfig.mode = MODE_ALBUM
+        // Make sure we have album name or album id
+        if ((!curConfig.albumId || curConfig.albumId.length === 0) && (!curConfig.albumName || curConfig.albumName.length === 0)) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': album mode set, but albumId or albumName do not have a valid value'
+          );
+        } else if (curConfig.albumId && curConfig.albumName) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': album mode set, but albumId or albumName do not have a valid value'
+          );
+          // This is a double check to make sure we only present one of these properties to
+          // node_helper
+          if (curConfig.albumId) {
+            curConfig.albumName = null;
+          } else {
+            curConfig.albumId = null;
+          }
+        }
+      } else if (curConfig.mode && curConfig.mode.trim().toLowerCase() === MODE_SEARCH) {
+        curConfig.mode = MODE_SEARCH
+        // Make sure we have album name or album id
+        if (!curConfig.query || typeof curConfig.query !== 'Object') {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': search mode set, but query not provided or set incorrectly'
+          );
+        } else if (!isNaN(curConfig.querySize) || curConfig.querySize < 1 || curConfig.querySize > 1000) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': search mode set, but querySize must be between 1 and 1000'
+          );
+          curConfig.querySize = this.defaultConfig.querySize;
+        }
+      } else {
+        Log.warn(
+          LOG_PREFIX + 'config ' + idx + ': memory mode not set to valid value, assuming memory mode...'
+        );
+      }
+      
       // ensure image order is in lower case
       this.config.immichConfigs[idx].sortImagesBy = this.config.immichConfigs[idx].sortImagesBy.toLowerCase();
       // Make sure to process imageInfo for all entries
