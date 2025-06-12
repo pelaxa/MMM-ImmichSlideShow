@@ -664,6 +664,7 @@ Module.register('MMM-ImmichSlideShow', {
           }
           break;
         case 'count': // show image count
+        case 'album':
           break;
         default:
           Log.warn(
@@ -675,7 +676,14 @@ Module.register('MMM-ImmichSlideShow', {
 
     // Log.debug('config.imageInfo[count]', config.imageInfo.includes('count'));
     // Log.dir('config.imageInfo', config.imageInfo);
-    let innerHTML = config.imageInfo.includes('count') ? `<header class="infoDivHeader">${imageinfo.index} of ${imageinfo.total}</header>`: '';
+    let headerString = '';
+    if (config.imageInfo.includes('count')) {
+      headerString = `${imageinfo.index} of ${imageinfo.total}`;
+    }
+    if (config.imageInfo.includes('album')) {
+      headerString = headerString.length == 0 ? imageinfo.albumName : headerString + '<br>' + imageinfo.albumName;
+    }
+    let innerHTML = headerString.length > 0 ? `<header class="infoDivHeader">${headerString}</header>`: '';
     imageProps.forEach((val, idx) => {
       innerHTML += val + '<br/>';
     });
