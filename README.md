@@ -353,15 +353,17 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>albumId</code></td>
-			<td>The id of the album to show pictures from. Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
-				<br><b>Example:</b> <code>1b57d1dc-57d6-4cd4-bc1d-f8ebf759ba16</code>
+			<td>Either a single id, or an array of ids of the albums to show pictures from. Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
+				<br><b>Example 1:</b> <code>1b57d1dc-57d6-4cd4-bc1d-f8ebf759ba16</code>
+				<br><b>Example 2:</b> <code>['1b57d1dc-57d6-4cd4-bc1d-f8ebf759ba16', '4aff9b7b-ae55-404f-81d5-27ccd93d1f9b']</code>
 				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumName</i> is not provided.
 			</td>
 		</tr>
 		<tr>
 			<td><code>albumName</code></td>
-			<td>The id of the album to show pictures from.  This name is case sensitive and should match the album name in Immich exactly.  Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
-				<br><b>Example:</b> <code>Family Trip 2023</code>
+			<td>Either a single name, or an array of names of the albums to show pictures from.  These names are case sensitive and should match the album name in Immich exactly.  Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
+				<br><b>Example 1:</b> <code>Family Trip 2023</code>
+				<br><b>Example 2:</b> <code>['Family Trip 2023', 'Christmas 2024']</code>
 				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumId</i> is not provided.
 			</td>
 		</tr>
@@ -398,8 +400,8 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>imageInfo</code></td>
-			<td>A list of image properties to display in the image info div.  Possible values are : <code>date</code> (EXIF date from image), <code>name</code> (image name), <code>since</code> (how long ago the picture was taken), <code>geo</code> (the city and country where the picture was taken if available), <code>people</code> (the name of the people in the picture. Use <code>people_skip</code> instead to not show extra separators for recognized faces with no name), <code>age</code> (The age of the people at the time the photo was taken.  Only works if <code>people</code> is also added), and <code>desc</code> (The description of the image if one is available), <code>count</code> (The current image number and total image count. Not displayed by default after 1.4.0+).
-			The values can be provided as an array of strings or as a space separated list string and the order that you provide this info is how it will display (top to bottom).<br/>
+			<td>A list of image properties to display in the image info div.  Possible values are : <code>date</code> (EXIF date from image), <code>name</code> (image name), <code>since</code> (how long ago the picture was taken), <code>geo</code> (the city and country where the picture was taken if available), <code>people</code> (the name of the people in the picture. Use <code>people_skip</code> instead to not show extra separators for recognized faces with no name), <code>age</code> (The age of the people at the time the photo was taken.  Only works if <code>people</code> is also added), and <code>desc</code> (The description of the image if one is available), <code>album</code> (the name of the album the photo belongs to, useful if you have multiple albums configured), <code>count</code> (The current image number and total image count. Not displayed by default after 1.4.0+).
+			The values can be provided as an array of strings or as a space separated list string and the order that you provide this info is how it will display (top to bottom), except for album and count which will always display at the top.<br/>
 			<b>Note</b>: providing too many options here may take up a large portion of the screen.<br/>
 				<br><b>Example:</b> <code>'date name people age'</code> or <code>[ 'date', 'name', 'people', 'age']</code>
 				<br><b>Default value:</b> <code>['date', 'since', 'count']</code>

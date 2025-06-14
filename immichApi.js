@@ -142,24 +142,15 @@ const immichApi = {
         }
     },
 
-    findAlbumId: async function (albumName) {
-        let albumId = null;
+    getAlbumNameToIdMap: async function () {
+        let albumNameToIdMap = new Map();
         try {
             const response = await this.http.get(this.apiUrls[this.apiLevel]['albums'], {responseType: 'json'});
             if (response.status === 200) {
-                // Loop through the albums to find the right now
                 for (let i=0; i < response.data.length; i++) {
                     const album = response.data[i];
-                    Log.debug(LOG_PREFIX + `comparing ${album.albumName} to ${albumName}`);
-                    if (album.albumName === albumName) {
-                        Log.debug(LOG_PREFIX + 'match found');
-                        albumId = album.id;
-                        break;
-                    }
-                }
-
-                if (!albumId) {
-                    Log.error(LOG_PREFIX + `could not find an album with the provided name (${albumName}).  Note that album name is case sensitive`);
+                    albumNameToIdMap.set(album.albumName, album.id);
+                    Log.debug(LOG_PREFIX + 'album name: ' + album.albumName + ', album id: ' + album.id);
                 }
             } else {
                 Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
@@ -167,8 +158,21 @@ const immichApi = {
         } catch (e) {
             Log.error(LOG_PREFIX + 'Oops!  Exception while fetching albums from Immich', e.message);
         }
+        return albumNameToIdMap;
+    },
 
-        return albumId;
+    findAlbumIds: async function (albumNames) {
+        let albumNameToAlbumIdMap = await this.getAlbumNameToIdMap();
+        let albumIds = [];
+        for (const albumName of albumNames) {
+            if (albumNameToAlbumIdMap.has(albumName)) {
+                albumIds = albumIds.concat(albumNameToAlbumIdMap.get(albumName));
+            } else {
+                Log.error(LOG_PREFIX + `could not find an album with the provided name (${albumName}).  Note that album name is case sensitive`);
+            }
+        }
+        Log.debug(LOG_PREFIX + `Found (${albumIds.length}/${albumNames.length}) matching albumIds`);
+        return albumIds;
     },
 
     getAlbumAssets: async function (albumId) {
@@ -177,6 +181,12 @@ const immichApi = {
             const response = await this.http.get(this.apiUrls[this.apiLevel]['albumInfo'].replace('{id}',albumId), {responseType: 'json'});
             if (response.status === 200) {
                 imageList = [...response.data.assets];
+                if (response.data.albumName) {
+                    Log.debug(LOG_PREFIX + `Retrieved ${imageList.length} images for album ${response.data.albumName}`);
+                    imageList.forEach(image =>
+                        image.albumName = response.data.albumName
+                    );
+                }
             } else {
                 Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
             }
@@ -184,6 +194,18 @@ const immichApi = {
             Log.error(LOG_PREFIX + 'Oops!  Exception while fetching pictures from album ', e.message);
         }
 
+        return imageList;
+    },
+
+    getAlbumAssetsForAlbumIds: async function (albumIds) {
+        let imageList = [];
+        for (const albumId of albumIds) {
+            let currentAlbumImages = await this.getAlbumAssets(albumId);
+            if (currentAlbumImages && currentAlbumImages.length > 0) {
+                imageList = imageList.concat(currentAlbumImages);
+            }
+        }
+        Log.debug(LOG_PREFIX + `retrieved ${imageList.length} images.`);
         return imageList;
     },
 

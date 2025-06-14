@@ -81,7 +81,7 @@ module.exports = NodeHelper.create({
   },
 
   sortImageList: function (imageList, sortBy, sortDescending) {
-    Log.log(LOG_PREFIX + 'sortImageList :: imageList is Array?', Array.isArray(imageList), sortBy, sortDescending);
+    Log.debug(LOG_PREFIX + 'sortImageList :: imageList is Array?', Array.isArray(imageList), sortBy, sortDescending);
     let sortedList = imageList;
     switch (sortBy) {
       case 'created':
@@ -144,7 +144,7 @@ module.exports = NodeHelper.create({
     this.imageList = [];
 
     // we default albumId to the config value and override below if albumName is provided
-    let albumId = config.activeImmichConfig.albumId;
+    let albumIds = config.activeImmichConfig.albumId;
 
     // Get today's date at midnight
     let today = (new Date());
@@ -154,15 +154,18 @@ module.exports = NodeHelper.create({
     if (config.activeImmichConfig.mode === 'album') {
       // If we have albumName but no albumId, then get the albumId
       if (config.activeImmichConfig.albumName && !config.activeImmichConfig.albumId) {
-        albumId = await immichApi.findAlbumId(config.activeImmichConfig.albumName);
+        let albumNames = config.activeImmichConfig.albumName;
+        albumNames = Array.isArray(albumNames) ? albumNames : [].concat(albumNames);
+        albumIds = await immichApi.findAlbumIds(albumNames);
       }
       // Only proceed if we have an albumId
-      if (albumId) {
-        Log.debug(LOG_PREFIX + 'fetching pictures from album', albumId);
+      if (albumIds) {
+        albumIds = Array.isArray(albumIds) ? albumIds : [].concat(albumIds);
+        Log.debug(LOG_PREFIX + 'fetching pictures from albums', albumIds);
         // Get the pictures from the album
-        this.imageList = await immichApi.getAlbumAssets(albumId);
+        this.imageList = await immichApi.getAlbumAssetsForAlbumIds(albumIds);
       } else {
-        Log.error(LOG_PREFIX + 'could not find the specified album in Immich.  Please check your configuration again');
+        Log.error(LOG_PREFIX + 'could not find any of the specified album(s) in Immich.  Please check your configuration again');
       }
     } else if (config.activeImmichConfig.mode === 'search') {
       // Search mode
@@ -249,7 +252,8 @@ module.exports = NodeHelper.create({
         data: null,
         imageId: image.id,
         index: this.index+1, // Index is zero based
-        total: this.imageList.length
+        total: this.imageList.length,
+        albumName: image.albumName
       };
 
       // If there is no exif info available, or if we need people but no people are listed
