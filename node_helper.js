@@ -286,9 +286,38 @@ module.exports = NodeHelper.create({
       this.index++;
       // reloadOnLoop is only set when the pictures progress naturally, not when
       // next command is received
-      if (!reloadOnLoop && this.index >= this.imageList.length) {
-        Log.debug(LOG_PREFIX + 'Resetting image index(getNextImage)...' + this.index+ '/' + this.imageList.length);
-        this.index = 0;
+      if (this.index >= this.imageList.length) {
+        Log.debug(LOG_PREFIX + 'Reached end of image list');
+
+        if (!reloadOnLoop) {
+          Log.debug(LOG_PREFIX + 'Resetting image index(getNextImage)...' + this.index+ '/' + this.imageList.length);
+          this.index = 0;
+        }
+        
+        // Check if cyclic configs is enabled and we have more than one config
+        if (reloadOnLoop && this.config.cyclicConfigs === true && this.config.immichConfigs.length > 1) {
+          Log.debug(LOG_PREFIX + 'Cycling to next config');
+          
+          // Increment the active config index, with wrapping
+          let nextConfigIndex = (this.config.activeImmichConfigIndex + 1) % this.config.immichConfigs.length;
+          
+          // Update the config
+          this.config.activeImmichConfigIndex = nextConfigIndex;
+          this.config.activeImmichConfig = this.config.immichConfigs[nextConfigIndex];
+          
+          // Reset index to start from the beginning of the next album
+          this.index = 0;
+          
+          // Notify the frontend module that we've cycled to a new config
+          this.sendSocketNotification('IMMICHSLIDESHOW_CONFIG_CHANGED', {
+            identifier: this.config.identifier,
+            configIndex: nextConfigIndex
+          });
+          
+          // Change active config and load new images
+          this.changeActiveConfig(this.config);
+          return;
+        }
       }
     }
     this.displayImage();

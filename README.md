@@ -147,6 +147,14 @@ The following properties can be configured:
 			See <b>Immich Configuration Options</b> below<br/>	
 			</td>
 		</tr>
+		<tr>
+			<td><code>cyclicConfigs</code></td>
+			<td>When set to true, after reaching the last image in a configuration, the module will automatically switch to the next configuration in the <code>immichConfigs</code> array. This allows you to cycle through all your configured albums or modes automatically.<br/>
+			<br/><b>Example:</b> <code>true</code>
+			<br/><b>Default value:</b> <code>false</code>
+			<br/>This value is <b>OPTIONAL</b>
+			</td>
+		</tr>
         <tr>
 			<td><code>activeImmichConfigIndex</code></td>
 			<td>Integer value indicating which of the Immich configurations (immichConfigs) is active.  This can be changed at run time as well and defaults to 0 if not provided.<br>
