@@ -6,17 +6,9 @@
  * Module: MMM-ImmichSlideShow
  *
  * Magic Mirror By Michael Teeuw http://michaelteeuw.nl
- * MIT Licens      this.config.immichConfigs.forEach((element,idx) => {
-      // If the entry does not have a dateFormat specified, set it to default
-      if (!element.hasOwnProperty('dateFormat')) {
-        element.dateFormat = DEFAULT_DATE_FORMAT;
-      }
-      // If cyclicConfigs is not defined, set default
-      if (!this.config.hasOwnProperty('cyclicConfigs')) {
-        this.config.cyclicConfigs = this.defaultConfig.cyclicConfigs;
-      }
-      this.config.immichConfigs[idx] = {...this.config.immichConfigs[0],...element};
-      const curConfig = this.config.immichConfigs[idx]; * Module MMM-Slideshow By Darick Carpenter
+ * MIT Licensed.
+ *
+ * Module MMM-Slideshow By Darick Carpenter
  * MIT Licensed.
  */
 // const Log = console;
