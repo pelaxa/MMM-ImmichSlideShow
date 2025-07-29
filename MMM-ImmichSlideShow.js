@@ -53,7 +53,9 @@ Module.register('MMM-ImmichSlideShow', {
     // a comma separated list of values to display: name, date, since, geo
     imageInfo: ['date', 'since', 'count'],
     // the date format to use for imageInfo
-    dateFormat: DEFAULT_DATE_FORMAT
+    dateFormat: DEFAULT_DATE_FORMAT,
+    // whether to cycle through configs after reaching the last image
+    cyclicConfigs: false
   },
 
   // Default module config.
@@ -387,6 +389,11 @@ Module.register('MMM-ImmichSlideShow', {
       } else if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
         // Update config in backend
         this.updateImageList();
+      } else if (notification === 'IMMICHSLIDESHOW_CONFIG_CHANGED') {
+        // Config was changed due to cyclic configs
+        Log.debug(LOG_PREFIX + 'Config changed by cycling to index: ' + payload.configIndex);
+        this.config.activeImmichConfigIndex = payload.configIndex;
+        this.config.activeImmichConfig = this.config.immichConfigs[payload.configIndex];
       } else {
         Log.warn(LOG_PREFIX + 'received an unexpected module notification: ' + notification);
       }
