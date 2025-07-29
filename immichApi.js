@@ -46,7 +46,8 @@ const immichApi = {
             assetInfo: '/assets/{id}',
             assetDownload: '/assets/{id}/thumbnail?size=preview',
             serverInfoUrl: '/server/version',
-            search: '/search/smart'
+            search: '/search/smart',
+            randomSearch: '/search/random'
         }
     },
 
@@ -271,6 +272,33 @@ const immichApi = {
             }
         } catch(e) {
             Log.error(LOG_PREFIX + 'Oops!  Exception while fetching images from Immich (search)', e.message);
+        }
+
+        return imageList;
+    },
+
+    randomSearchAssets: async function (size, query) {
+        let imageList = [];
+            
+        Log.debug(LOG_PREFIX + 'Searching for random images, SIZE: ', size);
+        try{
+            const searchQuery = { size: size };
+            
+            // Add any additional query parameters if provided
+            if (query) {
+                Object.assign(searchQuery, query);
+            }
+            
+            Log.debug(LOG_PREFIX + 'Random search query: ', searchQuery);
+            const response = await this.http.post(this.apiUrls[this.apiLevel]['randomSearch'], searchQuery, {responseType: 'json'});
+            
+            if (response.status === 200) {
+                imageList = response.data;
+            } else {
+                Log.error(LOG_PREFIX + 'unexpected response from Immich while searching random assets', response.status, response.statusText);
+            }
+        } catch(e) {
+            Log.error(LOG_PREFIX + 'Oops!  Exception while fetching random images from Immich', e.message);
         }
 
         return imageList;

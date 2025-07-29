@@ -170,6 +170,12 @@ module.exports = NodeHelper.create({
     } else if (config.activeImmichConfig.mode === 'search') {
       // Search mode
       this.imageList = await immichApi.searchAssets(config.activeImmichConfig.query, config.activeImmichConfig.querySize);
+    } else if (config.activeImmichConfig.mode === 'random') {
+      // Random mode
+      this.imageList = await immichApi.randomSearchAssets(
+        config.activeImmichConfig.querySize || 100, 
+        config.activeImmichConfig.query || null
+      );
     } else {
       // Assume we are in memory mode
       this.imageList = await immichApi.getMemoryLaneAssets(config.activeImmichConfig.numDaysToInclude);
