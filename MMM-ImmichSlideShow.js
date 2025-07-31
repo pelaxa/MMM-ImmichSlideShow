@@ -16,6 +16,7 @@ const LOG_PREFIX = 'MMM-ImmichSlideShow :: module :: ';
 const MODE_MEMORY = 'memory';
 const MODE_ALBUM = 'album';
 const MODE_SEARCH = 'search';
+const MODE_RANDOM = 'random';
 const DEFAULT_DATE_FORMAT = 'dddd MMMM D, YYYY HH:mm';
 
 Module.register('MMM-ImmichSlideShow', {
@@ -27,6 +28,8 @@ Module.register('MMM-ImmichSlideShow', {
     // Mode of operation: 
     //    memory = show recent photos.  requires numDaystoInclude
     //    album = show picture from album.  requires albumId/albumName
+    //    search = search for photos based on a query.  requires query
+    //    random = show random photos.
     mode: MODE_MEMORY,
     // an Immich API key to be able to access Immich
     apiKey: 'provide your API KEY',
@@ -42,7 +45,7 @@ Module.register('MMM-ImmichSlideShow', {
     albumName: null,
     // When mode is search, we need to query for something
     query: null,
-    // How many images to bring back when searching (between 1 and 1000)
+    // How many images to bring back when searching or random mode (between 1 and 1000)
     querySize: 100,
     // the speed at which to switch between images, in milliseconds
     slideshowSpeed: 15 * 1000,
@@ -218,6 +221,15 @@ Module.register('MMM-ImmichSlideShow', {
         } else if (!isNaN(curConfig.querySize) || curConfig.querySize < 1 || curConfig.querySize > 1000) {
           Log.warn(
             LOG_PREFIX + 'config ' + idx + ': search mode set, but querySize must be between 1 and 1000'
+          );
+          curConfig.querySize = this.defaultConfig.querySize;
+        }
+      } else if (curConfig.mode && curConfig.mode.trim().toLowerCase() === MODE_RANDOM) {
+        curConfig.mode = MODE_RANDOM
+        // Validate querySize if provided
+        if (!isNaN(curConfig.querySize) || curConfig.querySize < 1 || curConfig.querySize > 1000) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': random mode set, but querySize must be between 1 and 1000'
           );
           curConfig.querySize = this.defaultConfig.querySize;
         }

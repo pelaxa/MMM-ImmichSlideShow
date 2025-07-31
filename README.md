@@ -347,8 +347,11 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>mode</code></td>
-			<td>The mode of operation for the module.  Valid options are 'memory', 'album', or 'search'(Experimental) and depending on which is chosen, additional settings are required.<br>
+			<td>The mode of operation for the module.  Valid options are 'memory', 'album', 'search'(Experimental), or 'random' and depending on which is chosen, additional settings are required.<br>
 				<br><b>Example:</b> <code>memory</code> for memory mode
+				<br><b>Example:</b> <code>album</code> for album mode
+				<br><b>Example:</b> <code>search</code> for search mode
+				<br><b>Example:</b> <code>random</code> for random mode
 				<br>This value is <b>REQUIRED</b>
 			</td>
 		</tr>
@@ -375,19 +378,23 @@ The following properties can be configured:
 				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumId</i> is not provided.
 			</td>
 		</tr>
-		<tr>
-			<td><code>query</code></td>
-			<td>The query object used to search for images.  This is an advanced feature and the expected value here is meant to be a JSON matching what Immich currently supports.  Refer to: <a target="immich_api" href="https://immich.app/docs/api/search-smart">Immich Smart Search</a> for more details.<br>
-				<br><b>Example:</b> <code>{query: 'animals', city: 'Montreal'}</code>
-				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i>.
-			</td>
-		</tr>
+        <tr>
+            <td><code>query</code></td>
+            <td>
+                The query object used to search for images in <i>search</i> mode and <i>random</i> mode. This is an advanced feature and the expected value here is meant to be a JSON matching what Immich currently supports.<br>
+                <br><b>For search mode:</b> The query parameter contains search criteria like text queries, location filters, etc. Refer to: <a target="immich_api" href="https://immich.app/docs/api/search-smart">Immich Smart Search</a> for more detail<br>
+                    <b>Example for search:</b> <code>{ "query": "animals", "city": "Montreal" }</code><br>
+                    <code>query</code> is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i>.<br>
+                <br><b>For random mode:</b> The query parameter can include filters like albumIds, personIds, favorites, etc. Refer to <a target="immich_api" href="https://immich.app/docs/api/search-random">Immich Random Search</a> for more detail.<br>
+                    <b>Example for random:</b> <code>{ "isFavorite": true, "withPeople": true }</code><br>
+            </td>
+        </tr>
 		<tr>
 			<td><code>querySize</code></td>
-			<td>The number of images to return when in <i>search</i> mode.  Although, this can also be specified as a <i>size</i> parameter in <i>query</i>, the value specified here overwrites that value.  This value must be between 1 and 1000.<br>
+			<td>The number of images to return when in <i>search</i> or <i>random</i> mode.  Although, this can also be specified as a <i>size</i> parameter in <i>query</i>, the value specified here overwrites that value.  This value must be between 1 and 1000.<br>
 				<br><b>Example:</b> <code>150</code>
 				<br><b>Default value:</b> <code>100</code>
-				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i>.
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i> or <i>random</i>.
 			</td>
 		</tr>
 		<tr>
@@ -449,6 +456,16 @@ modules: [
             mode: 'album',
             slideshowSpeed: 6000,
             imageInfo: ['date','since','geo','count'],
+          },
+          {
+            mode: 'random',
+            querySize: 50,
+            query: {
+              isFavorite: true,
+              withPeople: true
+            },
+            imageInfo: ['date','since','people'],
+            slideshowSpeed: 10000
           }
         ],
         activeImmichConfigIndex: 0,
