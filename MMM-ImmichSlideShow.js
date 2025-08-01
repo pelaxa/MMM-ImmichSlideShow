@@ -53,7 +53,7 @@ Module.register('MMM-ImmichSlideShow', {
     sortImagesBy: 'none',
     // whether to sort in ascending (default) or descending order
     sortImagesDescending: false,
-    // a comma separated list of values to display: name, date, since, geo
+    // a comma separated list of values to display: name, date, since, geo, exif
     imageInfo: ['date', 'since', 'count'],
     // the date format to use for imageInfo
     dateFormat: DEFAULT_DATE_FORMAT,
@@ -602,6 +602,35 @@ Module.register('MMM-ImmichSlideShow', {
     }
   },
 
+  // FUNZIONE MODIFICATA: Aggiunti helper per formattare i dati EXIF
+  formatExposureTime: function(exposureTime) {
+    if (!exposureTime) return null;
+    
+    const numericValue = parseFloat(exposureTime);
+    if (numericValue >= 1) {
+      return `${numericValue}s`;
+    } else {
+      // Converti in frazione per tempi < 1 secondo
+      const fraction = Math.round(1 / numericValue);
+      return `1/${fraction}s`;
+    }
+  },
+
+  formatFocalLength: function(focalLength) {
+    if (!focalLength) return null;
+    return `${Math.round(parseFloat(focalLength))}mm`;
+  },
+
+  formatAperture: function(fNumber) {
+    if (!fNumber) return null;
+    return `f/${parseFloat(fNumber).toFixed(1)}`;
+  },
+
+  formatISO: function(iso) {
+    if (!iso) return null;
+    return `ISO ${iso}`;
+  },
+
   updateImageInfo: function (imageinfo, imageDate) {
     let imageProps = [];
     const config = this.config.activeImmichConfig;
@@ -642,6 +671,32 @@ Module.register('MMM-ImmichSlideShow', {
           // If we end up with a string that has some length, then add it to image info.
           if (geoLocation.length > 0) {
             imageProps.push(geoLocation);
+          }
+          break;
+        // NUOVO CASO: Mostra dati EXIF tecnici
+        case 'exif': // show EXIF technical data
+          if (imageinfo.exifInfo) {
+            let exifData = [];
+            
+            // Apertura (f-stop)
+            const aperture = this.formatAperture(imageinfo.exifInfo.fNumber);
+            if (aperture) exifData.push(aperture);
+            
+            // Tempo di esposizione
+            const exposureTime = this.formatExposureTime(imageinfo.exifInfo.exposureTime);
+            if (exposureTime) exifData.push(exposureTime);
+            
+            // Lunghezza focale
+            const focalLength = this.formatFocalLength(imageinfo.exifInfo.focalLength);
+            if (focalLength) exifData.push(focalLength);
+            
+            // ISO
+            const iso = this.formatISO(imageinfo.exifInfo.iso);
+            if (iso) exifData.push(iso);
+            
+            if (exifData.length > 0) {
+              imageProps.push(exifData.join(' • '));
+            }
           }
           break;
         case 'people':
@@ -789,7 +844,8 @@ Module.register('MMM-ImmichSlideShow', {
    */
   fixImageInfo: function(imageInfo, index) {
     //validate imageinfo property.  This will make sure we have at least 1 valid value
-    const imageInfoValues = '\\bname\\b|\\bdate\\b|\\bsince\\b|\\bgeo\\b|\\bpeople\\b|\\bpeople_skip\\b|\\bage\\b|\\bdesc\\b|\\bcount\\b|';
+    // AGGIORNATA: Aggiunto 'exif' alla lista dei valori validi
+    const imageInfoValues = '\\bname\\b|\\bdate\\b|\\bsince\\b|\\bgeo\\b|\\bpeople\\b|\\bpeople_skip\\b|\\bage\\b|\\bdesc\\b|\\bcount\\b|\\bexif\\b|';
     const imageInfoRegex = new RegExp(imageInfoValues,'gi');
     // Set the log prefix
     const prefix = LOG_PREFIX + `config[${index}]: `;
