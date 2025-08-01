@@ -304,6 +304,82 @@ const immichApi = {
         return imageList;
     },
 
+    // Anniversary Search Assets using randomSearch API to query images taken on the same date range (of specified month) across multiple years.
+    anniversarySearchAssets: async function (datesBack, datesForward, startYear, endYear, querySize, query) {
+        let imageList = [];
+        
+        Log.debug(LOG_PREFIX + 'Searching for anniversary images:', { datesBack, datesForward, startYear, endYear, querySize, query });
+        
+        const today = new Date();
+        const currentMonth = today.getMonth() + 1; // getMonth() returns 0-11
+        const currentDay = today.getDate();
+        
+        try {
+            // Calculate date range
+            const startDate = new Date(today);
+            startDate.setDate(currentDay - datesBack);
+            const endDate = new Date(today);
+            endDate.setDate(currentDay + datesForward);
+            
+            const startMonth = startDate.getMonth() + 1;
+            const startDay = startDate.getDate();
+            const endMonth = endDate.getMonth() + 1;
+            const endDay = endDate.getDate();
+            
+            Log.debug(LOG_PREFIX + 'Anniversary date range: ', 
+                `${startMonth.toString().padStart(2, '0')}-${startDay.toString().padStart(2, '0')} to ${endMonth.toString().padStart(2, '0')}-${endDay.toString().padStart(2, '0')}`);
+            
+            // For each year in the range, search for images
+            for (let year = startYear; year <= endYear; year++) {
+                const yearStartDate = new Date(year, startMonth - 1, startDay);
+                const yearEndDate = new Date(year, endMonth - 1, endDay);
+                
+                // Handle cross-month scenarios (e.g., July 29 - August 2)
+                if (endDate.getDate() < startDate.getDate()) {
+                    yearEndDate.setMonth(yearEndDate.getMonth() + 1);
+                }
+                
+                const startDateString = yearStartDate.toISOString().split('T')[0];
+                const endDateString = yearEndDate.toISOString().split('T')[0];
+                
+                Log.debug(LOG_PREFIX + `Searching for year ${year}: ${startDateString} to ${endDateString}`);
+                
+                const searchQuery = {};
+                
+                // Add any additional query parameters if provided
+                if (query) {
+                    Object.assign(searchQuery, query);
+                }
+
+                Object.assign(searchQuery, {
+                    size: querySize,
+                    takenAfter: startDateString + 'T00:00:00.000Z',
+                    takenBefore: endDateString + 'T23:59:59.999Z'
+                });
+                
+                try {
+                    const response = await this.http.post(this.apiUrls[this.apiLevel]['randomSearch'], searchQuery, {responseType: 'json'});
+                    
+                    if (response.status === 200) {
+                        const yearImages = response.data || [];
+                        Log.debug(LOG_PREFIX + `Found ${yearImages.length} images for year ${year}`);
+                        imageList = imageList.concat(yearImages);
+                    } else {
+                        Log.warn(LOG_PREFIX + `Unexpected response from Immich while searching anniversary assets for year ${year}`, response.status, response.statusText);
+                    }
+                } catch (yearError) {
+                    Log.warn(LOG_PREFIX + `Exception while fetching anniversary images for year ${year}:`, yearError.message);
+                }
+            }
+            
+        } catch (e) {
+            Log.error(LOG_PREFIX + 'Oops! Exception while fetching anniversary images from Immich:', e.message);
+        }
+        
+        Log.debug(LOG_PREFIX + `Total anniversary images found: ${imageList.length}`);
+        return imageList;
+    },
+
     getAssetInfo: async function (imageId) {
         let assetInfo = {
             exifInfo: [],

@@ -176,6 +176,16 @@ module.exports = NodeHelper.create({
         config.activeImmichConfig.querySize || 100, 
         config.activeImmichConfig.query || null
       );
+    } else if (config.activeImmichConfig.mode === 'anniversary') {
+      // Anniversary mode
+      this.imageList = await immichApi.anniversarySearchAssets(
+        config.activeImmichConfig.anniversaryDatesBack || 3,
+        config.activeImmichConfig.anniversaryDatesForward || 3,
+        config.activeImmichConfig.anniversaryStartYear || 2020,
+        config.activeImmichConfig.anniversaryEndYear || 2025,
+        config.activeImmichConfig.querySize || 100,
+        config.activeImmichConfig.query || null
+      );
     } else {
       // Assume we are in memory mode
       this.imageList = await immichApi.getMemoryLaneAssets(config.activeImmichConfig.numDaysToInclude);

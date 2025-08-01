@@ -347,11 +347,12 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>mode</code></td>
-			<td>The mode of operation for the module.  Valid options are 'memory', 'album', 'search'(Experimental), or 'random' and depending on which is chosen, additional settings are required.<br>
+			<td>The mode of operation for the module.  Valid options are 'memory', 'album', 'search'(Experimental), 'random', or 'anniversary' and depending on which is chosen, additional settings are required.<br>
 				<br><b>Example:</b> <code>memory</code> for memory mode
 				<br><b>Example:</b> <code>album</code> for album mode
 				<br><b>Example:</b> <code>search</code> for search mode
 				<br><b>Example:</b> <code>random</code> for random mode
+				<br><b>Example:</b> <code>anniversary</code> for anniversary mode
 				<br>This value is <b>REQUIRED</b>
 			</td>
 		</tr>
@@ -381,20 +382,52 @@ The following properties can be configured:
         <tr>
             <td><code>query</code></td>
             <td>
-                The query object used to search for images in <i>search</i> mode and <i>random</i> mode. This is an advanced feature and the expected value here is meant to be a JSON matching what Immich currently supports.<br>
+                The query object used to search for images in <i>search</i>, <i>random</i>, and <i>anniversary</i> mode. This is an advanced feature and the expected value here is meant to be a JSON matching what Immich currently supports.<br>
                 <br><b>For search mode:</b> The query parameter contains search criteria like text queries, location filters, etc. Refer to: <a target="immich_api" href="https://immich.app/docs/api/search-smart">Immich Smart Search</a> for more detail<br>
-                    <b>Example for search:</b> <code>{ "query": "animals", "city": "Montreal" }</code><br>
+                    <b>Example:</b> <code>{ "query": "animals", "city": "Montreal" }</code><br>
                     <code>query</code> is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i>.<br>
-                <br><b>For random mode:</b> The query parameter can include filters like albumIds, personIds, favorites, etc. Refer to <a target="immich_api" href="https://immich.app/docs/api/search-random">Immich Random Search</a> for more detail.<br>
-                    <b>Example for random:</b> <code>{ "isFavorite": true, "withPeople": true }</code><br>
+                <br><b>For random and anniversary mode:</b> The query parameter can include filters like albumIds, personIds, favorites, etc. Refer to <a target="immich_api" href="https://immich.app/docs/api/search-random">Immich Random Search</a> for more detail.<br>
+                    <b>Example:</b> <code>{ "isFavorite": true, "withPeople": true }</code><br>
             </td>
         </tr>
 		<tr>
 			<td><code>querySize</code></td>
-			<td>The number of images to return when in <i>search</i> or <i>random</i> mode.  Although, this can also be specified as a <i>size</i> parameter in <i>query</i>, the value specified here overwrites that value.  This value must be between 1 and 1000.<br>
+			<td>The number of images to return when in <i>search</i>, <i>random</i>, or <i>anniversary</i> mode.  Although, this can also be specified as a <i>size</i> parameter in <i>query</i>, the value specified here overwrites that value.  This value must be between 1 and 1000.<br>
 				<br><b>Example:</b> <code>150</code>
 				<br><b>Default value:</b> <code>100</code>
-				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i> or <i>random</i>.
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i>, <i>random</i>, or <i>anniversary</i>.
+			</td>
+		</tr>
+		<tr>
+			<td><code>anniversaryDatesBack</code></td>
+			<td>The number of days to look back from today's date when in <i>anniversary</i> mode. For example, if today is July 30th and this is set to 3, it will look for images from July 27th onwards for each year in the range.<br>
+				<br><b>Example:</b> <code>3</code>
+				<br><b>Default value:</b> <code>3</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>anniversary</i>.
+			</td>
+		</tr>
+		<tr>
+			<td><code>anniversaryDatesForward</code></td>
+			<td>The number of days to look forward from today's date when in <i>anniversary</i> mode. For example, if today is July 30th and this is set to 3, it will look for images up to August 2nd for each year in the range.<br>
+				<br><b>Example:</b> <code>3</code>
+				<br><b>Default value:</b> <code>3</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>anniversary</i>.
+			</td>
+		</tr>
+		<tr>
+			<td><code>anniversaryStartYear</code></td>
+			<td>The starting year for the anniversary search. The module will search for images in the date range for each year from this year to <i>anniversaryEndYear</i>.<br>
+				<br><b>Example:</b> <code>2020</code>
+				<br><b>Default value:</b> <code>2020</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>anniversary</i>.
+			</td>
+		</tr>
+		<tr>
+			<td><code>anniversaryEndYear</code></td>
+			<td>The ending year for the anniversary search. The module will search for images in the date range for each year from <i>anniversaryStartYear</i> to this year.<br>
+				<br><b>Example:</b> <code>2025</code>
+				<br><b>Default value:</b> <code>2025</code>
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>anniversary</i>.
 			</td>
 		</tr>
 		<tr>
@@ -434,7 +467,6 @@ The following properties can be configured:
 	</tbody>
 </table>
 
-
 ### Configuration Example
 ```javascript
 ...
@@ -466,6 +498,21 @@ modules: [
             },
             imageInfo: ['date','since','people'],
             slideshowSpeed: 10000
+          },
+          {
+            // The module will search for 100 photos taken between July 27th - August 2nd for each year from 2020 to 2025, creating 6 separate queries and combining all results.
+            mode: 'anniversary',
+            anniversaryDatesBack: 5,
+            anniversaryDatesForward: 2,
+            anniversaryStartYear: 2018,
+            anniversaryEndYear: 2025,
+            querySize: 50,
+            query: {
+              isFavorite: true,
+              withPeople: true
+            },
+            imageInfo: ['date','since','people'],
+            slideshowSpeed: 20000
           }
         ],
         activeImmichConfigIndex: 0,
