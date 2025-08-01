@@ -602,14 +602,14 @@ Module.register('MMM-ImmichSlideShow', {
     }
   },
 
-  // FUNZIONE MODIFICATA: Aggiunti helper per formattare i dati EXIF
+  /// Function to format EXIF data
   formatExposureTime: function(exposureTime) {
     if (!exposureTime) return null;
 
     let numericValue;
 
     if (typeof exposureTime === 'string') {
-      // Gestisce il caso "1/xxx"
+      // Case "1/xxx"
       if (exposureTime.includes('/')) {
         const parts = exposureTime.replace('s', '').split('/');
         if (parts.length === 2) {
@@ -618,7 +618,7 @@ Module.register('MMM-ImmichSlideShow', {
           if (numerator === 1 && !isNaN(denominator) && denominator !== 0) {
             numericValue = 1 / denominator;
           } else {
-            return null; // Formato non valido
+            return null; // Invalid format
           }
         } else {
           return null;
@@ -638,15 +638,15 @@ Module.register('MMM-ImmichSlideShow', {
       const denominator = Math.round(1 / numericValue);
 
       if (denominator <= 125) {
-        // Da 1/125s a 1s → arrotonda ai 5 più vicini
+        // From 1/125s to 1s → round 5
         const rounded = Math.round(denominator / 5) * 5;
         return `1/${rounded}s`;
       } else if (denominator <= 500) {
-        // Tempi veloci fino a 1/500s → arrotonda ai 50
+        // Up to 1/500s → round 50
         const rounded = Math.round(denominator / 50) * 50;
         return `1/${rounded}s`;
       } else {
-        // Tempi ancora più veloci → arrotonda ai 100
+        // Faster times → round 100
         const rounded = Math.round(denominator / 100) * 100;
         return `1/${rounded}s`;
       }
@@ -710,20 +710,20 @@ Module.register('MMM-ImmichSlideShow', {
             imageProps.push(geoLocation);
           }
           break;
-        // NUOVO CASO: Mostra dati EXIF tecnici
+        // Show EXIF data
         case 'exif': // show EXIF technical data
           if (imageinfo.exifInfo) {
             let exifData = [];
             
-            // Apertura (f-stop)
+            // Aperture (f-stop)
             const aperture = this.formatAperture(imageinfo.exifInfo.fNumber);
             if (aperture) exifData.push(aperture);
             
-            // Tempo di esposizione
+            // Exposition time
             const exposureTime = this.formatExposureTime(imageinfo.exifInfo.exposureTime);
             if (exposureTime) exifData.push(exposureTime);
             
-            // Lunghezza focale
+            // Focal lenght
             const focalLength = this.formatFocalLength(imageinfo.exifInfo.focalLength);
             if (focalLength) exifData.push(focalLength);
             
