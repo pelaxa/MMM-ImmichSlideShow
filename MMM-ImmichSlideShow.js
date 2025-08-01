@@ -604,17 +604,54 @@ Module.register('MMM-ImmichSlideShow', {
 
   // FUNZIONE MODIFICATA: Aggiunti helper per formattare i dati EXIF
   formatExposureTime: function(exposureTime) {
-    if (!exposureTime) return null;
-    
-    const numericValue = parseFloat(exposureTime);
-    if (numericValue >= 1) {
-      return `${numericValue}s`;
+  if (!exposureTime) return null;
+
+  let numericValue;
+
+  if (typeof exposureTime === 'string') {
+    // Gestisce il caso "1/xxx"
+    if (exposureTime.includes('/')) {
+      const parts = exposureTime.replace('s', '').split('/');
+      if (parts.length === 2) {
+        const numerator = parseFloat(parts[0]);
+        const denominator = parseFloat(parts[1]);
+        if (numerator === 1 && !isNaN(denominator) && denominator !== 0) {
+          numericValue = 1 / denominator;
+        } else {
+          return null; // Formato non valido
+        }
+      } else {
+        return null;
+      }
     } else {
-      // Converti in frazione per tempi < 1 secondo
-      const fraction = Math.round(1 / numericValue);
-      return `1/${fraction}s`;
+      numericValue = parseFloat(exposureTime);
     }
-  },
+  } else {
+    numericValue = parseFloat(exposureTime);
+  }
+
+  if (isNaN(numericValue)) return null;
+
+  if (numericValue >= 1) {
+    return numericValue % 1 === 0 ? `${numericValue}s` : `${numericValue.toFixed(1)}s`;
+  } else {
+    const denominator = Math.round(1 / numericValue);
+
+    if (denominator <= 125) {
+      // Da 1/125s a 1s → arrotonda ai 5 più vicini
+      const rounded = Math.round(denominator / 5) * 5;
+      return `1/${rounded}s`;
+    } else if (denominator <= 500) {
+      // Tempi veloci fino a 1/500s → arrotonda ai 50
+      const rounded = Math.round(denominator / 50) * 50;
+      return `1/${rounded}s`;
+    } else {
+      // Tempi ancora più veloci → arrotonda ai 100
+      const rounded = Math.round(denominator / 100) * 100;
+      return `1/${rounded}s`;
+    }
+  }
+},
 
   formatFocalLength: function(focalLength) {
     if (!focalLength) return null;
