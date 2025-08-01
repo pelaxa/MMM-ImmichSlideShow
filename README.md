@@ -506,11 +506,7 @@ modules: [
             anniversaryDatesForward: 2,
             anniversaryStartYear: 2018,
             anniversaryEndYear: 2025,
-            querySize: 50,
-            query: {
-              isFavorite: true,
-              withPeople: true
-            },
+            querySize: 50,  // Number of images to fetch for each year
             imageInfo: ['date','since','people'],
             slideshowSpeed: 20000
           }
