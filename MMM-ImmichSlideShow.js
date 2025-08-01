@@ -16,6 +16,7 @@ const LOG_PREFIX = 'MMM-ImmichSlideShow :: module :: ';
 const MODE_MEMORY = 'memory';
 const MODE_ALBUM = 'album';
 const MODE_SEARCH = 'search';
+const MODE_RANDOM = 'random';
 const DEFAULT_DATE_FORMAT = 'dddd MMMM D, YYYY HH:mm';
 
 Module.register('MMM-ImmichSlideShow', {
@@ -27,6 +28,8 @@ Module.register('MMM-ImmichSlideShow', {
     // Mode of operation: 
     //    memory = show recent photos.  requires numDaystoInclude
     //    album = show picture from album.  requires albumId/albumName
+    //    search = search for photos based on a query.  requires query
+    //    random = show random photos.
     mode: MODE_MEMORY,
     // an Immich API key to be able to access Immich
     apiKey: 'provide your API KEY',
@@ -42,7 +45,7 @@ Module.register('MMM-ImmichSlideShow', {
     albumName: null,
     // When mode is search, we need to query for something
     query: null,
-    // How many images to bring back when searching (between 1 and 1000)
+    // How many images to bring back when searching or random mode (between 1 and 1000)
     querySize: 100,
     // the speed at which to switch between images, in milliseconds
     slideshowSpeed: 15 * 1000,
@@ -218,6 +221,15 @@ Module.register('MMM-ImmichSlideShow', {
         } else if (!isNaN(curConfig.querySize) || curConfig.querySize < 1 || curConfig.querySize > 1000) {
           Log.warn(
             LOG_PREFIX + 'config ' + idx + ': search mode set, but querySize must be between 1 and 1000'
+          );
+          curConfig.querySize = this.defaultConfig.querySize;
+        }
+      } else if (curConfig.mode && curConfig.mode.trim().toLowerCase() === MODE_RANDOM) {
+        curConfig.mode = MODE_RANDOM
+        // Validate querySize if provided
+        if (!isNaN(curConfig.querySize) || curConfig.querySize < 1 || curConfig.querySize > 1000) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': random mode set, but querySize must be between 1 and 1000'
           );
           curConfig.querySize = this.defaultConfig.querySize;
         }
@@ -590,14 +602,14 @@ Module.register('MMM-ImmichSlideShow', {
     }
   },
 
-  // FUNZIONE MODIFICATA: Aggiunti helper per formattare i dati EXIF
+  /// Function to format EXIF data
   formatExposureTime: function(exposureTime) {
     if (!exposureTime) return null;
-  
+
     let numericValue;
-  
+
     if (typeof exposureTime === 'string') {
-      // Gestisce il caso "1/xxx"
+      // Case "1/xxx"
       if (exposureTime.includes('/')) {
         const parts = exposureTime.replace('s', '').split('/');
         if (parts.length === 2) {
@@ -606,7 +618,7 @@ Module.register('MMM-ImmichSlideShow', {
           if (numerator === 1 && !isNaN(denominator) && denominator !== 0) {
             numericValue = 1 / denominator;
           } else {
-            return null; // Formato non valido
+            return null; // Invalid format
           }
         } else {
           return null;
@@ -617,24 +629,24 @@ Module.register('MMM-ImmichSlideShow', {
     } else {
       numericValue = parseFloat(exposureTime);
     }
-  
+
     if (isNaN(numericValue)) return null;
-  
+
     if (numericValue >= 1) {
       return numericValue % 1 === 0 ? `${numericValue}s` : `${numericValue.toFixed(1)}s`;
     } else {
       const denominator = Math.round(1 / numericValue);
-  
+
       if (denominator <= 125) {
-        // Da 1/125s a 1s → arrotonda ai 5 più vicini
+        // From 1/125s to 1s → round 5
         const rounded = Math.round(denominator / 5) * 5;
         return `1/${rounded}s`;
       } else if (denominator <= 500) {
-        // Tempi veloci fino a 1/500s → arrotonda ai 50
+        // Up to 1/500s → round 50
         const rounded = Math.round(denominator / 50) * 50;
         return `1/${rounded}s`;
       } else {
-        // Tempi ancora più veloci → arrotonda ai 100
+        // Faster times → round 100
         const rounded = Math.round(denominator / 100) * 100;
         return `1/${rounded}s`;
       }
@@ -698,20 +710,20 @@ Module.register('MMM-ImmichSlideShow', {
             imageProps.push(geoLocation);
           }
           break;
-        // NUOVO CASO: Mostra dati EXIF tecnici
+        // Show EXIF data
         case 'exif': // show EXIF technical data
           if (imageinfo.exifInfo) {
             let exifData = [];
             
-            // Apertura (f-stop)
+            // Aperture (f-stop)
             const aperture = this.formatAperture(imageinfo.exifInfo.fNumber);
             if (aperture) exifData.push(aperture);
             
-            // Tempo di esposizione
+            // Exposition time
             const exposureTime = this.formatExposureTime(imageinfo.exifInfo.exposureTime);
             if (exposureTime) exifData.push(exposureTime);
             
-            // Lunghezza focale
+            // Focal lenght
             const focalLength = this.formatFocalLength(imageinfo.exifInfo.focalLength);
             if (focalLength) exifData.push(focalLength);
             
