@@ -63,7 +63,7 @@ Module.register('MMM-ImmichSlideShow', {
     sortImagesBy: 'none',
     // whether to sort in ascending (default) or descending order
     sortImagesDescending: false,
-    // a comma separated list of values to display: name, date, since, geo
+    // a comma separated list of values to display: name, date, since, geo, exif
     imageInfo: ['date', 'since', 'count'],
     // the date format to use for imageInfo
     dateFormat: DEFAULT_DATE_FORMAT,
@@ -643,6 +643,72 @@ Module.register('MMM-ImmichSlideShow', {
     }
   },
 
+  /// Function to format EXIF data
+  formatExposureTime: function(exposureTime) {
+    if (!exposureTime) return null;
+
+    let numericValue;
+
+    if (typeof exposureTime === 'string') {
+      // Case "1/xxx"
+      if (exposureTime.includes('/')) {
+        const parts = exposureTime.replace('s', '').split('/');
+        if (parts.length === 2) {
+          const numerator = parseFloat(parts[0]);
+          const denominator = parseFloat(parts[1]);
+          if (numerator === 1 && !isNaN(denominator) && denominator !== 0) {
+            numericValue = 1 / denominator;
+          } else {
+            return null; // Invalid format
+          }
+        } else {
+          return null;
+        }
+      } else {
+        numericValue = parseFloat(exposureTime);
+      }
+    } else {
+      numericValue = parseFloat(exposureTime);
+    }
+
+    if (isNaN(numericValue)) return null;
+
+    if (numericValue >= 1) {
+      return numericValue % 1 === 0 ? `${numericValue}s` : `${numericValue.toFixed(1)}s`;
+    } else {
+      const denominator = Math.round(1 / numericValue);
+
+      if (denominator <= 125) {
+        // From 1/125s to 1s → round 5
+        const rounded = Math.round(denominator / 5) * 5;
+        return `1/${rounded}s`;
+      } else if (denominator <= 500) {
+        // Up to 1/500s → round 50
+        const rounded = Math.round(denominator / 50) * 50;
+        return `1/${rounded}s`;
+      } else {
+        // Faster times → round 100
+        const rounded = Math.round(denominator / 100) * 100;
+        return `1/${rounded}s`;
+      }
+    }
+  },
+
+  formatFocalLength: function(focalLength) {
+    if (!focalLength) return null;
+    return `${Math.round(parseFloat(focalLength))}mm`;
+  },
+
+  formatAperture: function(fNumber) {
+    if (!fNumber) return null;
+    return `f/${parseFloat(fNumber).toFixed(1)}`;
+  },
+
+  formatISO: function(iso) {
+    if (!iso) return null;
+    return `ISO ${iso}`;
+  },
+
   updateImageInfo: function (imageinfo, imageDate) {
     let imageProps = [];
     const config = this.config.activeImmichConfig;
@@ -683,6 +749,32 @@ Module.register('MMM-ImmichSlideShow', {
           // If we end up with a string that has some length, then add it to image info.
           if (geoLocation.length > 0) {
             imageProps.push(geoLocation);
+          }
+          break;
+        // Show EXIF data
+        case 'exif': // show EXIF technical data
+          if (imageinfo.exifInfo) {
+            let exifData = [];
+            
+            // Aperture (f-stop)
+            const aperture = this.formatAperture(imageinfo.exifInfo.fNumber);
+            if (aperture) exifData.push(aperture);
+            
+            // Exposition time
+            const exposureTime = this.formatExposureTime(imageinfo.exifInfo.exposureTime);
+            if (exposureTime) exifData.push(exposureTime);
+            
+            // Focal lenght
+            const focalLength = this.formatFocalLength(imageinfo.exifInfo.focalLength);
+            if (focalLength) exifData.push(focalLength);
+            
+            // ISO
+            const iso = this.formatISO(imageinfo.exifInfo.iso);
+            if (iso) exifData.push(iso);
+            
+            if (exifData.length > 0) {
+              imageProps.push(exifData.join(' • '));
+            }
           }
           break;
         case 'people':
@@ -830,7 +922,8 @@ Module.register('MMM-ImmichSlideShow', {
    */
   fixImageInfo: function(imageInfo, index) {
     //validate imageinfo property.  This will make sure we have at least 1 valid value
-    const imageInfoValues = '\\bname\\b|\\bdate\\b|\\bsince\\b|\\bgeo\\b|\\bpeople\\b|\\bpeople_skip\\b|\\bage\\b|\\bdesc\\b|\\bcount\\b|';
+    // AGGIORNATA: Aggiunto 'exif' alla lista dei valori validi
+    const imageInfoValues = '\\bname\\b|\\bdate\\b|\\bsince\\b|\\bgeo\\b|\\bpeople\\b|\\bpeople_skip\\b|\\bage\\b|\\bdesc\\b|\\bcount\\b|\\bexif\\b|';
     const imageInfoRegex = new RegExp(imageInfoValues,'gi');
     // Set the log prefix
     const prefix = LOG_PREFIX + `config[${index}]: `;
