@@ -17,6 +17,7 @@ const MODE_MEMORY = 'memory';
 const MODE_ALBUM = 'album';
 const MODE_SEARCH = 'search';
 const MODE_RANDOM = 'random';
+const MODE_ANNIVERSARY = 'anniversary';
 const DEFAULT_DATE_FORMAT = 'dddd MMMM D, YYYY HH:mm';
 
 Module.register('MMM-ImmichSlideShow', {
@@ -30,6 +31,7 @@ Module.register('MMM-ImmichSlideShow', {
     //    album = show picture from album.  requires albumId/albumName
     //    search = search for photos based on a query.  requires query
     //    random = show random photos.
+    //    anniversary = show photos from the same date range across multiple years. requires anniversaryDatesBack, anniversaryDatesForward, anniversaryStartYear, anniversaryEndYear
     mode: MODE_MEMORY,
     // an Immich API key to be able to access Immich
     apiKey: 'provide your API KEY',
@@ -47,6 +49,14 @@ Module.register('MMM-ImmichSlideShow', {
     query: null,
     // How many images to bring back when searching or random mode (between 1 and 1000)
     querySize: 100,
+    // Number of days to look back before the current date
+    anniversaryDatesBack: 3,
+    // Number of days to look forward after the current date  
+    anniversaryDatesForward: 3,
+    // Starting year for anniversary search
+    anniversaryStartYear: 2020,
+    // Ending year for anniversary search
+    anniversaryEndYear: 2025,
     // the speed at which to switch between images, in milliseconds
     slideshowSpeed: 15 * 1000,
     // how to sort images: name, random, created, modified, taken, none
@@ -158,6 +168,10 @@ Module.register('MMM-ImmichSlideShow', {
           numDaysToInclude: this.config.numDaysToInclude || this.defaultConfig.numDaysToInclude,
           albumId: this.config.albumId || this.defaultConfig.albumId,
           albumName: this.config.albumName || this.defaultConfig.albumName,
+          anniversaryDatesBack: this.config.anniversaryDatesBack || this.defaultConfig.anniversaryDatesBack,
+          anniversaryDatesForward: this.config.anniversaryDatesForward || this.defaultConfig.anniversaryDatesForward,
+          anniversaryStartYear: this.config.anniversaryStartYear || this.defaultConfig.anniversaryStartYear,
+          anniversaryEndYear: this.config.anniversaryEndYear || this.defaultConfig.anniversaryEndYear,
           slideshowSpeed: this.config.slideshowSpeed || this.defaultConfig.slideshowSpeed,
           sortImagesBy: this.config.sortImagesBy || this.defaultConfig.sortImagesBy,
           sortImagesDescending: this.config.sortImagesDescending || this.defaultConfig.sortImagesDescending,
@@ -232,6 +246,33 @@ Module.register('MMM-ImmichSlideShow', {
             LOG_PREFIX + 'config ' + idx + ': random mode set, but querySize must be between 1 and 1000'
           );
           curConfig.querySize = this.defaultConfig.querySize;
+        }
+      } else if (curConfig.mode && curConfig.mode.trim().toLowerCase() === MODE_ANNIVERSARY) {
+        curConfig.mode = MODE_ANNIVERSARY
+        // Validate anniversary configuration
+        if (isNaN(curConfig.anniversaryDatesBack) || curConfig.anniversaryDatesBack < 0) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': anniversary mode set, but anniversaryDatesBack must be a non-negative number'
+          );
+          curConfig.anniversaryDatesBack = this.defaultConfig.anniversaryDatesBack;
+        }
+        if (isNaN(curConfig.anniversaryDatesForward) || curConfig.anniversaryDatesForward < 0) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': anniversary mode set, but anniversaryDatesForward must be a non-negative number'
+          );
+          curConfig.anniversaryDatesForward = this.defaultConfig.anniversaryDatesForward;
+        }
+        if (isNaN(curConfig.anniversaryStartYear) || curConfig.anniversaryStartYear < 1900) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': anniversary mode set, but anniversaryStartYear must be a valid year (>= 1900)'
+          );
+          curConfig.anniversaryStartYear = this.defaultConfig.anniversaryStartYear;
+        }
+        if (isNaN(curConfig.anniversaryEndYear) || curConfig.anniversaryEndYear < curConfig.anniversaryStartYear) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': anniversary mode set, but anniversaryEndYear must be >= anniversaryStartYear'
+          );
+          curConfig.anniversaryEndYear = this.defaultConfig.anniversaryEndYear;
         }
       } else {
         Log.warn(

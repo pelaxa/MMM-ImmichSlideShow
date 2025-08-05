@@ -1,4 +1,3 @@
-
 // const Log = console;
 const Log = require('logger');
 const axios = require('axios');
@@ -301,6 +300,86 @@ const immichApi = {
             Log.error(LOG_PREFIX + 'Oops!  Exception while fetching random images from Immich', e.message);
         }
 
+        return imageList;
+    },
+
+    // Anniversary Search Assets using randomSearch API to query images taken on the same date range (of specified month) across multiple years.
+    anniversarySearchAssets: async function (datesBack, datesForward, startYear, endYear, querySize, query) {
+        let imageList = [];
+        
+        Log.debug(LOG_PREFIX + 'Searching for anniversary images:', { datesBack, datesForward, startYear, endYear, querySize, query });
+        
+        const today = new Date();
+        const currentDay = today.getDate();
+        
+        try {
+            // Calculate date range
+            const startDate = new Date(today);
+            startDate.setDate(currentDay - datesBack);
+            const endDate = new Date(today);
+            endDate.setDate(currentDay + datesForward);
+            
+            // Get month and day values directly
+            const startMonth = startDate.getMonth();
+            const startDay = startDate.getDate();
+            const endMonth = endDate.getMonth();
+            const endDay = endDate.getDate();
+            
+            Log.debug(LOG_PREFIX + 'Anniversary date range: ', 
+                `${(startMonth+1).toString().padStart(2, '0')}-${startDay.toString().padStart(2, '0')} to ${(endMonth+1).toString().padStart(2, '0')}-${endDay.toString().padStart(2, '0')}`);
+            
+            // For each year in the range, search for images
+            for (let year = startYear; year <= endYear; year++) {
+                // Handle year boundary crossing properly
+                let searchStartYear = year;
+                let searchEndYear = year;
+                
+                // If date range wraps from end to beginning of year
+                if (startMonth > endMonth || (startMonth === endMonth && startDay > endDay)) {
+                    searchEndYear = year + 1;
+                }
+                
+                const yearStartDate = new Date(searchStartYear, startMonth, startDay);
+                const yearEndDate = new Date(searchEndYear, endMonth, endDay);
+                
+                const startDateString = yearStartDate.toISOString().split('T')[0];
+                const endDateString = yearEndDate.toISOString().split('T')[0];
+                
+                Log.debug(LOG_PREFIX + `Searching for year ${year}: ${startDateString} to ${endDateString}`);
+                
+                const searchQuery = {};
+                
+                // Add any additional query parameters if provided
+                if (query) {
+                    Object.assign(searchQuery, query);
+                }
+
+                Object.assign(searchQuery, {
+                    size: querySize,
+                    takenAfter: startDateString + 'T00:00:00.000Z',
+                    takenBefore: endDateString + 'T23:59:59.999Z'
+                });
+                
+                try {
+                    const response = await this.http.post(this.apiUrls[this.apiLevel]['randomSearch'], searchQuery, {responseType: 'json'});
+                    
+                    if (response.status === 200) {
+                        const yearImages = response.data || [];
+                        Log.debug(LOG_PREFIX + `Found ${yearImages.length} images for year ${year}`);
+                        imageList = imageList.concat(yearImages);
+                    } else {
+                        Log.debug(LOG_PREFIX + `Unexpected response from Immich while searching anniversary assets for year ${year}`, response.status, response.statusText);
+                    }
+                } catch (yearError) {
+                    Log.warn(LOG_PREFIX + `Exception while fetching anniversary images for year ${year}:`, yearError.message);
+                }
+            }
+            
+        } catch (e) {
+            Log.error(LOG_PREFIX + 'Oops! Exception while fetching anniversary images from Immich:', e.message);
+        }
+        
+        Log.debug(LOG_PREFIX + `Total anniversary images found: ${imageList.length}`);
         return imageList;
     },
 
