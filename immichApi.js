@@ -1,10 +1,11 @@
-const Log = console;
-// const Log = require('logger');
+// const Log = console;
+const Log = require('logger');
 const axios = require('axios');
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const LOG_PREFIX = 'MMM-ImmichSlideShow :: immichApi :: ';
 const IMMICH_PROXY_URL = '/immichslideshow/';
+let IS_PROXY_REGISTERED = false;
 
 const immichApi = {
     apiUrls: {
@@ -121,13 +122,10 @@ const immichApi = {
                 throw('Failed to get Immich version.  Cannot proceed.');
             }
 
-            // Now setup our proxy service if not already registered
-            const proxyRegistered = expressApp.router.stack.some(layer => {
-                                        return layer.path && IMMICH_PROXY_URL.indexOf(layer.path) === 0;
-                                    });
             // Only register the proxy if not already registered
-            if (!proxyRegistered) {
+            if (!IS_PROXY_REGISTERED) {
                 Log.debug('Registering proxy for immich');
+                IS_PROXY_REGISTERED = true;
                 const self = this;
                 expressApp.use(IMMICH_PROXY_URL, createProxyMiddleware({
                     changeOrigin: true,

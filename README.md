@@ -364,18 +364,14 @@ The following properties can be configured:
 		</tr>
 		<tr>
 			<td><code>mode</code></td>
-			<td>The mode of operation for the module.  Valid options are 'memory', 'album', 'search'(Experimental), 'random', or 'anniversary' and depending on which is chosen, additional settings are required.<br>
+			<td>The mode of operation for the module.  Valid options are 'memory', 'album', 'search', 'random', or 'anniversary' and depending on which is chosen, additional settings are required.<br>
 				<br><b>Example:</b> <code>memory</code> for memory mode
-				<br><b>Example:</b> <code>album</code> for album mode
-				<br><b>Example:</b> <code>search</code> for search mode
-				<br><b>Example:</b> <code>random</code> for random mode
-				<br><b>Example:</b> <code>anniversary</code> for anniversary mode
 				<br>This value is <b>REQUIRED</b>
 			</td>
 		</tr>
 		<tr>
 			<td><code>numDaysToInclude</code></td>
-			<td>The number of days to go back and collect images for.  Use this to make sure you always have images to display since there could be days where no pictures were taken over the years.<br>
+			<td>The number of days to go back and collect images for.  Use this to make sure you always have images to display since there could be days where no pictures were taken over the years.  Max value allowed is 14 days.<br>
 				<br><b>Example:</b> <code>7</code> for 7 days
 				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>memory</i>
 			</td>
