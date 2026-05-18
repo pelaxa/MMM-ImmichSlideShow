@@ -184,6 +184,10 @@ Module.register('MMM-ImmichSlideShow', {
         }
       ]
     } else {
+      // Make sure the defaultConfig is overridden by the main config
+      this.defaultConfig = {...this.defaultConfig,...this.config};
+      // Remove the immichConfigs from default config.
+      delete this.defaultConfig.immichConfigs
       this.config.immichConfigs[0] = {...this.defaultConfig,...this.config.immichConfigs[0]};
     }
 
@@ -522,8 +526,10 @@ Module.register('MMM-ImmichSlideShow', {
 
       if (this.config.backgroundSize == 'contain' && this.config.showBlurredImageForBlackBars) {
         this.imagesDiv.style.backgroundImage = `url("${image.src}")`;
+      } else if (this.config.backgroundSize == 'contain' ) {
+        transitionDiv.style.backgroundColor = this.config.backgroundColor || 'rgba(0,0,0,0.5)';
       } else {
-        // this.imagesDiv.style.backgroundColor = this.config.backgroundColor || 'rgba(0,0,0,0.5)';
+        this.imagesDiv.style.backgroundColor = this.config.backgroundColor || 'rgba(0,0,0,0.5)';
       }
       if (this.config.transitionImages && this.config.transitions.length > 0) {
         let randomNumber = Math.floor(
