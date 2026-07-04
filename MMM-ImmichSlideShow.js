@@ -309,7 +309,7 @@ Module.register('MMM-ImmichSlideShow', {
     
     if (this.data.position.indexOf('fullscreen') !== -1 && (this.config.width || this.config.height)) {
       Log.warn(
-          LOG_PREFIX + 'Display is set to fullscreen and width/height provided.  Ignoring with/height...'
+          LOG_PREFIX + 'Display is set to fullscreen and width/height provided.  Ignoring width/height...'
         );
       this.config.width = this.config.height = null;
     } else if (this.data.position.indexOf('fullscreen') === -1 && (!this.config.width || !this.config.height)) {

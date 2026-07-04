@@ -150,7 +150,7 @@ const immichApi = {
                 }));
             }
 
-            Log.debug(LOG_PREFIX + 'Server Version is', this.apiLevel, JSON.stringify(serverVersion));
+            Log.debug(LOG_PREFIX + 'Server Version is ', this.apiLevel, ' or later: ', JSON.stringify(serverVersion));
         }
 
         // Make sure the proxy target and key are updated each time

@@ -32,7 +32,7 @@ module.exports = NodeHelper.create({
     // this.expressInstance = this.expressApp;
     this.imageList = [];
     this.index = 0;
-    Log.debug(LOG_PREFIX + 'initialized index to zero!' + this.index);
+    Log.debug(LOG_PREFIX + 'initialized index to zero!', this.index);
     this.config;
     this.pictureDate = 0;
   },
