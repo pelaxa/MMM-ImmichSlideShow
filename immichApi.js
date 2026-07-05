@@ -48,10 +48,22 @@ const immichApi = {
             serverInfoUrl: '/server/version',
             search: '/search/smart',
             randomSearch: '/search/random'
-        }
+        },
+        v3_0: {
+            previousVersion: 'v1_133',
+            albums: '/albums',
+            albumInfo: '/albums/{id}',
+            searchMetadata: '/search/metadata',
+            memoryLane: '/memories',
+            assetInfo: '/assets/{id}',
+            assetDownload: '/assets/{id}/thumbnail?size=preview',
+            serverInfoUrl: '/server/version',
+            search: '/search/smart',
+            randomSearch: '/search/random'
+        },
     },
 
-    apiLevel: 'v1_133',
+    apiLevel: 'v3_0',
     apiBaseUrl: '/api',
     http: null,
 
@@ -196,7 +208,19 @@ const immichApi = {
         try {
             const response = await this.http.get(this.apiUrls[this.apiLevel]['albumInfo'].replace('{id}',albumId), {responseType: 'json'});
             if (response.status === 200) {
-                imageList = [...response.data.assets];
+                let albumName = response.data.albumName;
+                if (this.apiLevel == 'v3_0'){
+                    try {
+                        const response2 = await this.http.post(this.apiUrls[this.apiLevel]['searchMetadata'], {albumIds: [albumId]},  {responseType: 'json'});
+                        if (response2.status === 200){
+                            imageList = [...response2.data.assets.items];
+                        }
+                    } catch (e) {
+                        Log.error(LOG_PREFIX + 'Oops! unexpected error fetching V3 album', e.message);
+                    }
+                } else {
+                    imageList = [...response.data.assets];
+                }
                 if (response.data.albumName) {
                     Log.debug(LOG_PREFIX + `Retrieved ${imageList.length} images for album ${response.data.albumName}`);
                     imageList.forEach(image =>
