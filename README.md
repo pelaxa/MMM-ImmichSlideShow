@@ -377,30 +377,32 @@ The following properties can be configured:
 			</td>
 		</tr>
 		<tr>
-			<td><code>albumId</code></td>
-			<td>Either a single id, or an array of ids of the albums to show pictures from. Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
-				<br><b>Example 1:</b> <code>1b57d1dc-57d6-4cd4-bc1d-f8ebf759ba16</code>
+			<td><code>albumIds</code></td>
+			<td>An array of ids of the album IDs to show pictures from. Note that if <i>albumIds</i> and <i>albumNames</i> are provided, <i>albumIds</i> will take precedence.<br>
+				<br><b>Example 1:</b> <code>['1b57d1dc-57d6-4cd4-bc1d-f8ebf759ba16']</code>
 				<br><b>Example 2:</b> <code>['1b57d1dc-57d6-4cd4-bc1d-f8ebf759ba16', '4aff9b7b-ae55-404f-81d5-27ccd93d1f9b']</code>
-				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumName</i> is not provided.
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumNames</i> is not provided.
+				<br>As of version 2.1.0, this property changed from albumId to albumIds and is always expected to be an array.
 			</td>
 		</tr>
 		<tr>
-			<td><code>albumName</code></td>
-			<td>Either a single name, or an array of names of the albums to show pictures from.  These names are case sensitive and should match the album name in Immich exactly.  Note that if <i>albumId</i> and <i>albumName</i> are provided, <i>albumId</i> will take precedence.<br>
-				<br><b>Example 1:</b> <code>Family Trip 2023</code>
+			<td><code>albumNames</code></td>
+			<td>An array of names of the album names to show pictures from.  These names are case sensitive and should match the album name in Immich exactly.  Note that if <i>albumIds</i> and <i>albumNames</i> are provided, <i>albumIds</i> will take precedence.<br>
+				<br><b>Example 1:</b> <code>['Family Trip 2023']</code>
 				<br><b>Example 2:</b> <code>['Family Trip 2023', 'Christmas 2024']</code>
-				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumId</i> is not provided.
+				<br>This value is <b>REQUIRED</b> if <i>mode</i> is set to <i>album</i> and <i>albumIds</i> is not provided.
+				<br>As of version 2.1.0, this property changed from albumId to albumIds and is always expected to be an array.
 			</td>
 		</tr>
         <tr>
             <td><code>query</code></td>
             <td>
                 The query object used to search for images in <i>search</i>, <i>random</i>, and <i>anniversary</i> mode. This is an advanced feature and the expected value here is meant to be a JSON matching what Immich currently supports.<br>
-                <br><b>For search mode:</b> The query parameter contains search criteria like text queries, location filters, etc. Refer to: <a target="immich_api" href="https://immich.app/docs/api/search-smart">Immich Smart Search</a> for more detail<br>
+                <br><b>For search mode:</b> The query parameter contains search criteria like text queries, location filters, etc. Refer to: <a target="immich_api" href="https://api.immich.app/endpoints/search/searchSmart">Immich Smart Search</a> for more detail<br>
                     <b>Example:</b> <code>{ "query": "animals", "city": "Montreal" }</code><br>
                     <code>query</code> is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i>.<br>
-                <br><b>For random and anniversary mode:</b> The query parameter can include filters like albumIds, personIds, favorites, etc. Refer to <a target="immich_api" href="https://immich.app/docs/api/search-random">Immich Random Search</a> for more detail.<br>
-                    <b>Example:</b> <code>{ "isFavorite": true, "withPeople": true }</code><br>
+                <br><b>For random and anniversary mode:</b> The query parameter can include filters like albumIds, personIds, favorites, etc. Refer to <a target="immich_api" href="https://api.immich.app/endpoints/search/searchRandom">Immich Random Search</a> for more detail.<br>
+                    <b>Example:</b> <code>{ "isFavorite": true, "visibility": "timeline" }</code><br>
             </td>
         </tr>
 		<tr>
@@ -497,7 +499,7 @@ modules: [
 			dateFormat: 'MMMM YYYY'
           },
           {
-            albumId: 'xxxxxxx-yyyy-zzzz-aaaa-bbbbbbbb',
+            albumIds: ['xxxxxxx-yyyy-zzzz-aaaa-bbbbbbbb'],
             mode: 'album',
             slideshowSpeed: 6000,
             imageInfo: ['date','since','geo','count'],
@@ -507,7 +509,7 @@ modules: [
             querySize: 50,
             query: {
               isFavorite: true,
-              withPeople: true
+              "visibility": "timeline"
             },
             imageInfo: ['date','since','people'],
             slideshowSpeed: 10000

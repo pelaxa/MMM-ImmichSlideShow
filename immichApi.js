@@ -10,6 +10,7 @@ let IS_PROXY_REGISTERED = false;
 const immichApi = {
     apiUrls: {
        v1_94: {
+            version: 1.094,
             albums: '/album',
             albumInfo: '/album/{id}',
             memoryLane: '/asset/memory-lane',
@@ -19,6 +20,7 @@ const immichApi = {
             search: 'NOT SUPPORTED'
         },
         v1_106: {
+            version: 1.106,
             previousVersion: 'v1_94',
             albums: '/albums',
             albumInfo: '/albums/{id}',
@@ -29,6 +31,7 @@ const immichApi = {
             search: 'NOT SUPPORTED'
         },
         v1_118: {
+            version: 1.118,
             previousVersion: 'v1_106',
             albums: '/albums',
             albumInfo: '/albums/{id}',
@@ -39,7 +42,20 @@ const immichApi = {
             search: '/search/smart'
         },
         v1_133: {
+            version: 1.133,
             previousVersion: 'v1_118',
+            albums: '/albums',
+            albumInfo: '/albums/{id}',
+            memoryLane: '/memories',
+            assetInfo: '/assets/{id}',
+            assetDownload: '/assets/{id}/thumbnail?size=preview',
+            serverInfoUrl: '/server/version',
+            search: '/search/smart',
+            randomSearch: '/search/random'
+        },
+        v3_0: {
+            version: 3,
+            previousVersion: 'v1_133',
             albums: '/albums',
             albumInfo: '/albums/{id}',
             memoryLane: '/memories',
@@ -51,7 +67,7 @@ const immichApi = {
         }
     },
 
-    apiLevel: 'v1_133',
+    apiLevel: 'v3_0',
     apiBaseUrl: '/api',
     http: null,
 
@@ -109,10 +125,16 @@ const immichApi = {
             } catch(e) {
                 Log.error(LOG_PREFIX + 'Oops!  Exception while fetching server version', e.message);
             }
+
+            Log.info(LOG_PREFIX + 'Immich server version: ', serverVersion);
             
             if (serverVersion.major > -1) {
                 if (serverVersion.major === 1) {
-                    if (serverVersion.minor >= 106 && serverVersion.minor < 118 ) {
+                    if (serverVersion.minor >= 133 ) {
+                        this.apiLevel = 'v1_133';
+                    } else if (serverVersion.minor >= 118 && serverVersion.minor < 133 ) {
+                        this.apiLevel = 'v1_118';
+                    } else if (serverVersion.minor >= 106 && serverVersion.minor < 118 ) {
                         this.apiLevel = 'v1_106';
                     } else if (serverVersion.minor < 106 ) {
                         this.apiLevel = 'v1_94';
@@ -150,7 +172,7 @@ const immichApi = {
                 }));
             }
 
-            Log.debug(LOG_PREFIX + 'Server Version is', this.apiLevel, JSON.stringify(serverVersion));
+            Log.debug(LOG_PREFIX + 'Server Version is ', this.apiLevel, ' or later: ', JSON.stringify(serverVersion));
         }
 
         // Make sure the proxy target and key are updated each time
@@ -196,7 +218,16 @@ const immichApi = {
         try {
             const response = await this.http.get(this.apiUrls[this.apiLevel]['albumInfo'].replace('{id}',albumId), {responseType: 'json'});
             if (response.status === 200) {
-                imageList = [...response.data.assets];
+                Log.error(LOG_PREFIX + 'Album fetch response ', response.data);
+                // If we are on image v3 and later, then we need to fetch the assets separately
+                if (!!response.data.assets) {
+                    imageList = [...response.data.assets];
+                } else if (this.apiUrls[this.apiLevel].version >= 3) {
+                    // If we are on image v3 and later, then we need to fetch the assets separately
+
+                } else {
+                    Log.error(LOG_PREFIX + 'Oops!  Albums assets are not available due to unexpected API response.  An updated version of this module may be needed to address the issue.');
+                }
                 if (response.data.albumName) {
                     Log.debug(LOG_PREFIX + `Retrieved ${imageList.length} images for album ${response.data.albumName}`);
                     imageList.forEach(image =>
@@ -215,12 +246,24 @@ const immichApi = {
 
     getAlbumAssetsForAlbumIds: async function (albumIds) {
         let imageList = [];
-        for (const albumId of albumIds) {
-            let currentAlbumImages = await this.getAlbumAssets(albumId);
-            if (currentAlbumImages && currentAlbumImages.length > 0) {
-                imageList = imageList.concat(currentAlbumImages);
+        if (this.apiUrls[this.apiLevel].version >= 3) {
+            // For immich v3+, the easiest way to fetch album assets is to use the search function
+            // Why the devs decided to make this harder is beyond me, but the API now is more geared towards the UI rather than being a useful API
+            imageList = await this.searchAssets({
+                                                    type: "IMAGE",
+                                                    query: "*",
+                                                    visibility: "timeline",
+                                                    albumIds: albumIds
+                                                });
+        } else {
+            for (const albumId of albumIds) {
+                let currentAlbumImages = await this.getAlbumAssets(albumId);
+                if (currentAlbumImages && currentAlbumImages.length > 0) {
+                    imageList = imageList.concat(currentAlbumImages);
+                }
             }
         }
+        
         Log.debug(LOG_PREFIX + `retrieved ${imageList.length} images.`);
         return imageList;
     },
@@ -271,7 +314,7 @@ const immichApi = {
         return imageList;
     },
 
-    searchAssets: async function (query, size) {
+    searchAssets: async function (query, size = 1000) {
         let imageList = [];
             
         Log.debug(LOG_PREFIX + 'Searching for images: ', query, 'SIZE: ', size);
@@ -279,11 +322,11 @@ const immichApi = {
             const searchQuery = {...query, size: size};
             Log.debug(LOG_PREFIX + 'Searching query: ', searchQuery);
             const response = await this.http.post(this.apiUrls[this.apiLevel]['search'], searchQuery, {responseType: 'json'});
-            Log.info(LOG_PREFIX + 'response', response);
+            Log.debug(LOG_PREFIX + 'searchAssets response', response.data);
             if (response.status === 200) {
                 imageList = response.data.assets.items;
             } else {
-                Log.error(LOG_PREFIX + 'unexpected response from Immich while searching assets', response.status, response.statusText);
+                Log.error(LOG_PREFIX + 'Unexpected response from Immich while searching assets', response.status, response.statusText);
             }
         } catch(e) {
             Log.error(LOG_PREFIX + 'Oops!  Exception while fetching images from Immich (search)', e.message);
@@ -292,7 +335,7 @@ const immichApi = {
         return imageList;
     },
 
-    randomSearchAssets: async function (size, query) {
+    randomSearchAssets: async function (query, size = 1000) {
         let imageList = [];
             
         Log.debug(LOG_PREFIX + 'Searching for random images, SIZE: ', size);
@@ -320,7 +363,7 @@ const immichApi = {
     },
 
     // Anniversary Search Assets using randomSearch API to query images taken on the same date range (of specified month) across multiple years.
-    anniversarySearchAssets: async function (datesBack, datesForward, startYear, endYear, querySize, query) {
+    anniversarySearchAssets: async function (datesBack, datesForward, startYear, endYear, query, querySize) {
         let imageList = [];
         
         Log.debug(LOG_PREFIX + 'Searching for anniversary images:', { datesBack, datesForward, startYear, endYear, querySize, query });

@@ -28,7 +28,7 @@ Module.register('MMM-ImmichSlideShow', {
     name: 'recents',
     // Mode of operation: 
     //    memory = show recent photos.  requires numDaystoInclude
-    //    album = show picture from album.  requires albumId/albumName
+    //    album = show picture from album.  requires albumIds/albumNames
     //    search = search for photos based on a query.  requires query
     //    random = show random photos.
     //    anniversary = show photos from the same date range across multiple years. requires anniversaryDatesBack, anniversaryDatesForward, anniversaryStartYear, anniversaryEndYear
@@ -41,10 +41,10 @@ Module.register('MMM-ImmichSlideShow', {
     timeout: 6000,
     // Number of days to include images for, including today
     numDaysToInclude: 7,
-    // The ID of the album to display
-    albumId: null,
-    // The Name of the album to display
-    albumName: null,
+    // The IDs of the albums to display
+    albumIds: null,
+    // The Names of the albums to display
+    albumNames: null,
     // When mode is search, we need to query for something
     query: null,
     // How many images to bring back when searching or random mode (between 1 and 1000)
@@ -171,8 +171,8 @@ Module.register('MMM-ImmichSlideShow', {
           url: this.config.immichUrl || this.defaultConfig.url,
           timeout: this.config.immichTimeout || this.defaultConfig.timeout,
           numDaysToInclude: this.config.numDaysToInclude || this.defaultConfig.numDaysToInclude,
-          albumId: this.config.albumId || this.defaultConfig.albumId,
-          albumName: this.config.albumName || this.defaultConfig.albumName,
+          albumIds: this.config.albumIds || this.defaultConfig.albumIds,
+          albumNames: this.config.albumNames || this.defaultConfig.albumNames,
           anniversaryDatesBack: this.config.anniversaryDatesBack || this.defaultConfig.anniversaryDatesBack,
           anniversaryDatesForward: this.config.anniversaryDatesForward || this.defaultConfig.anniversaryDatesForward,
           anniversaryStartYear: this.config.anniversaryStartYear || this.defaultConfig.anniversaryStartYear,
@@ -217,21 +217,35 @@ Module.register('MMM-ImmichSlideShow', {
         }
       } else if (curConfig.mode && curConfig.mode.trim().toLowerCase() === MODE_ALBUM) {
         curConfig.mode = MODE_ALBUM
-        // Make sure we have album name or album id
-        if ((!curConfig.albumId || curConfig.albumId.length === 0) && (!curConfig.albumName || curConfig.albumName.length === 0)) {
+        // check if we have the old albumId and albumName and warn the user
+        if (curConfig.albumId || curConfig.albumName) {
           Log.warn(
-            LOG_PREFIX + 'config ' + idx + ': album mode set, but albumId or albumName do not have a valid value'
+            LOG_PREFIX + 'config ' + idx + ': album mode set, but your config is using the older albumId or albumName property.  Update these to albumIds or albumNames respectively.'
           );
-        } else if (curConfig.albumId && curConfig.albumName) {
+          if (!!curConfig.albumId && curConfig.albumId.length > 0) {
+            curConfig.albumIds = Array.isArray(curConfig.albumId) ? curConfig.albumId : [curConfig.albumId];
+            delete curConfig.albumId;
+          }
+          if (!!curConfig.albumName && curConfig.albumName.length > 0) {
+            curConfig.albumNames = Array.isArray(curConfig.albumName) ? curConfig.albumName : [curConfig.albumName];
+            delete curConfig.albumName;
+          }
+        }
+        // Make sure we have album name or album id
+        if ((!curConfig.albumIds || curConfig.albumIds.length === 0) && (!curConfig.albumNames || curConfig.albumNames.lengths === 0)) {
           Log.warn(
-            LOG_PREFIX + 'config ' + idx + ': album mode set, but albumId or albumName do not have a valid value'
+            LOG_PREFIX + 'config ' + idx + ': album mode set, but neither albumIds or albumNames have a valid value'
+          );
+        } else if (curConfig.albumIds && curConfig.albumNames) {
+          Log.warn(
+            LOG_PREFIX + 'config ' + idx + ': album mode set, with albumIds and albumNames.  AlbumIds will be used'
           );
           // This is a double check to make sure we only present one of these properties to
           // node_helper
-          if (curConfig.albumId) {
-            curConfig.albumName = null;
+          if (curConfig.albumIds) {
+            curConfig.albumNames = null;
           } else {
-            curConfig.albumId = null;
+            curConfig.albumIds = null;
           }
         }
       } else if (curConfig.mode && curConfig.mode.trim().toLowerCase() === MODE_SEARCH) {
@@ -309,7 +323,7 @@ Module.register('MMM-ImmichSlideShow', {
     
     if (this.data.position.indexOf('fullscreen') !== -1 && (this.config.width || this.config.height)) {
       Log.warn(
-          LOG_PREFIX + 'Display is set to fullscreen and width/height provided.  Ignoring with/height...'
+          LOG_PREFIX + 'Display is set to fullscreen and width/height provided.  Ignoring width/height...'
         );
       this.config.width = this.config.height = null;
     } else if (this.data.position.indexOf('fullscreen') === -1 && (!this.config.width || !this.config.height)) {

@@ -32,7 +32,7 @@ module.exports = NodeHelper.create({
     // this.expressInstance = this.expressApp;
     this.imageList = [];
     this.index = 0;
-    Log.debug(LOG_PREFIX + 'initialized index to zero!' + this.index);
+    Log.debug(LOG_PREFIX + 'initialized index to zero!', this.index);
     this.config;
     this.pictureDate = 0;
   },
@@ -148,7 +148,7 @@ module.exports = NodeHelper.create({
     this.imageList = [];
 
     // we default albumId to the config value and override below if albumName is provided
-    let albumIds = config.activeImmichConfig.albumId;
+    let albumIds = config.activeImmichConfig.albumIds;
 
     // Get today's date at midnight
     const today = (new Date());
@@ -157,14 +157,12 @@ module.exports = NodeHelper.create({
     // First check to see what mode we are operating in
     if (config.activeImmichConfig.mode === 'album') {
       // If we have albumName but no albumId, then get the albumId
-      if (config.activeImmichConfig.albumName && !config.activeImmichConfig.albumId) {
-        let albumNames = config.activeImmichConfig.albumName;
-        albumNames = Array.isArray(albumNames) ? albumNames : [].concat(albumNames);
+      if (config.activeImmichConfig.albumNames && !config.activeImmichConfig.albumIds) {
+        let albumNames = config.activeImmichConfig.albumNames;
         albumIds = await immichApi.findAlbumIds(albumNames);
       }
       // Only proceed if we have an albumId
       if (albumIds) {
-        albumIds = Array.isArray(albumIds) ? albumIds : [].concat(albumIds);
         Log.debug(LOG_PREFIX + 'fetching pictures from albums', albumIds);
         // Get the pictures from the album
         this.imageList = await immichApi.getAlbumAssetsForAlbumIds(albumIds);
@@ -177,8 +175,8 @@ module.exports = NodeHelper.create({
     } else if (config.activeImmichConfig.mode === 'random') {
       // Random mode
       this.imageList = await immichApi.randomSearchAssets(
-        config.activeImmichConfig.querySize || 100, 
-        config.activeImmichConfig.query || null
+        config.activeImmichConfig.query || null,
+        config.activeImmichConfig.querySize || 100
       );
     } else if (config.activeImmichConfig.mode === 'anniversary') {
       // Anniversary mode
@@ -187,8 +185,8 @@ module.exports = NodeHelper.create({
         config.activeImmichConfig.anniversaryDatesForward || 3,
         config.activeImmichConfig.anniversaryStartYear || 2020,
         config.activeImmichConfig.anniversaryEndYear || 2025,
-        config.activeImmichConfig.querySize || 100,
-        config.activeImmichConfig.query || null
+        config.activeImmichConfig.query || null,
+        config.activeImmichConfig.querySize || 100
       );
     } else {
       // Assume we are in memory mode
