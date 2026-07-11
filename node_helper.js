@@ -372,14 +372,24 @@ module.exports = NodeHelper.create({
   // },
 
   resume: function() {
-    Log.debug(LOG_PREFIX + 'Resume called!');
-    if (!this.timer) {
-      Log.debug(LOG_PREFIX + 'Resuming...', this.config.activeImmichConfig.slideshowSpeed);
-      this.timer = setInterval(() => {
+    if (this.config) {
+      Log.debug(LOG_PREFIX + 'Resume called!', 'ChangeImage?', this.config.changeImageOnResume, 'has timer?', !!this.timer);
+      // If we are supposed to change image on resume, then cancel the timer so image changes.
+      if (this.config.changeImageOnResume && !!this.timer) {
+        this.suspend();
         this.getNextImage(false, true);
-      }, this.config.activeImmichConfig.slideshowSpeed);
+      }
+      if (!this.timer) {
+        Log.debug(LOG_PREFIX + 'Resuming...', this.config.activeImmichConfig.slideshowSpeed);
+        this.timer = setInterval(() => {
+          this.getNextImage(false, true);
+        }, this.config.activeImmichConfig.slideshowSpeed);
+      }
+      // display the current image if not changing images on resume
+      if (!this.config.changeImageOnResume) {
+        this.displayImage(true);
+      }
     }
-    this.displayImage(true);
   },
 
   suspend: function() {

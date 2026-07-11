@@ -68,7 +68,9 @@ Module.register('MMM-ImmichSlideShow', {
     // the date format to use for imageInfo
     dateFormat: DEFAULT_DATE_FORMAT,
     // whether to cycle through configs after reaching the last image
-    cyclicConfigs: false
+    cyclicConfigs: false,
+    // Whether to show a new image any time the module is resumed
+    changeImageOnResume: false
   },
 
   // Default module config.
@@ -336,6 +338,14 @@ Module.register('MMM-ImmichSlideShow', {
 
     if (!this.config.transitionImages) {
       this.config.transitionSpeed = '0';
+    } else {
+      // make sure our transitions prop is an array
+      if (!Array.isArray(this.config.transitions)) {
+        Log.warn(
+          LOG_PREFIX + 'transitions must be specified as an array.'
+        );
+        this.config.transitions = [this.config.transitions];
+      }
     }
 
     // Lets make sure the backgroundAnimation duration matches the slideShowSpeed unless it has been
@@ -518,6 +528,12 @@ Module.register('MMM-ImmichSlideShow', {
 
   displayImage: function (imageinfo) {
 
+    // Skip displaying the same image (and possibly causing animation) if the same image is sent
+    if (this.lastDisplayedImageId && this.lastDisplayedImageId === imageinfo.imageId) {
+      Log.debug(LOG_PREFIX + 'Skipping display of same image...');
+      return;
+    }
+
     const imageInfo = imageinfo;
     const image = new Image();
     image.onload = () => {
@@ -648,6 +664,8 @@ Module.register('MMM-ImmichSlideShow', {
     };
 
     image.src = imageInfo.data;
+    // Store the last image image id to avoid showing it again.
+    this.lastDisplayedImageId = imageInfo.imageId;
     this.sendNotification('IMMICHSLIDESHOW_IMAGE_UPDATED', {
       url: imageInfo.path
     });
