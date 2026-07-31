@@ -216,37 +216,34 @@ const immichApi = {
     getAlbumAssets: async function (albumId) {
         let imageList = [];
         try {
-            if (this.apiUrls[this.apiLevel].version >= 3) {
-                // For immich v3+, the easiest way to fetch album assets is to use the search function
-                // Why the devs decided to make this harder is beyond me, but the API now is more geared towards the UI rather than being a useful API
-                imageList = await this.searchAssets({
+            // grab the album info, for api < 3 image assets are included in this response
+            // for api >= 3 this response is still needed to grab the album name
+            const response = await this.http.get(this.apiUrls[this.apiLevel]['albumInfo'].replace('{id}',albumId), {responseType: 'json'});
+            if (response.status === 200) {
+                Log.debug(LOG_PREFIX + 'Album fetch response ', response.data);
+                // If we are on image v3 and later, then we need to fetch the assets separately
+                if (!!response.data.assets) {
+                    imageList = [...response.data.assets];
+                } else if (this.apiUrls[this.apiLevel].version >= 3) {
+                    // For immich v3+, the easiest way to fetch album assets is to use the search function
+                    // Why the devs decided to make this harder is beyond me, but the API now is more geared towards the UI rather than being a useful API
+                    imageList = await this.searchAssets({
                                                         type: "IMAGE",
                                                         query: "*",
                                                         visibility: "timeline",
                                                         albumIds: [albumId]
                                                     });
-            } else {
-                const response = await this.http.get(this.apiUrls[this.apiLevel]['albumInfo'].replace('{id}',albumId), {responseType: 'json'});
-                if (response.status === 200) {
-                    Log.error(LOG_PREFIX + 'Album fetch response ', response.data);
-                    // If we are on image v3 and later, then we need to fetch the assets separately
-                    if (!!response.data.assets) {
-                        imageList = [...response.data.assets];
-                    } else if (this.apiUrls[this.apiLevel].version >= 3) {
-                        // If we are on image v3 and later, then we need to fetch the assets separately
-
-                    } else {
-                        Log.error(LOG_PREFIX + 'Oops!  Albums assets are not available due to unexpected API response.  An updated version of this module may be needed to address the issue.');
-                    }
-                    if (response.data.albumName) {
-                        Log.debug(LOG_PREFIX + `Retrieved ${imageList.length} images for album ${response.data.albumName}`);
-                        imageList.forEach(image =>
-                            image.albumName = response.data.albumName
-                        );
-                    }
                 } else {
-                    Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+                    Log.error(LOG_PREFIX + 'Oops!  Albums assets are not available due to unexpected API response.  An updated version of this module may be needed to address the issue.');
                 }
+                if (response.data.albumName) {
+                    Log.debug(LOG_PREFIX + `Retrieved ${imageList.length} images for album ${response.data.albumName}`);
+                    imageList.forEach(image =>
+                        image.albumName = response.data.albumName
+                    );
+                }
+            } else {
+                Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
             }
         } catch (e) {
             Log.error(LOG_PREFIX + 'Oops!  Exception while fetching pictures from album ', e.message);

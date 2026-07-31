@@ -891,7 +891,7 @@ Module.register('MMM-ImmichSlideShow', {
     if (config.imageInfo.includes('count')) {
       headerString = `${imageinfo.index} of ${imageinfo.total}`;
     }
-    if (config.imageInfo.includes('album')) {
+    if (config.imageInfo.includes('album') && imageinfo.albumName) {
       headerString = headerString.length == 0 ? imageinfo.albumName : headerString + '<br>' + imageinfo.albumName;
     }
     let innerHTML = headerString.length > 0 ? `<header class="infoDivHeader">${headerString}</header>`: '';
