@@ -63,6 +63,7 @@ const immichApi = {
       assetDownload: '/assets/{id}/thumbnail?size=preview',
       serverInfoUrl: '/server/version',
       search: '/search/smart',
+      metadataSearch: '/search/metadata',
       randomSearch: '/search/random'
     }
   },
@@ -227,10 +228,9 @@ const immichApi = {
         } else if (this.apiUrls[this.apiLevel].version >= 3) {
           // For immich v3+, the easiest way to fetch album assets is to use the search function
           // Why the devs decided to make this harder is beyond me, but the API now is more geared towards the UI rather than being a useful API
-          imageList = await this.searchAssets({
+          imageList = await this.searchAssetsByMetadata({
             type: "IMAGE",
             query: "*",
-            visibility: "timeline",
             albumIds: [albumId]
           });
         } else {
@@ -320,6 +320,27 @@ const immichApi = {
       const searchQuery = {...query, size: size};
       Log.debug(LOG_PREFIX + 'Searching query: ', searchQuery);
       const response = await this.http.post(this.apiUrls[this.apiLevel]['search'], searchQuery, {responseType: 'json'});
+      Log.debug(LOG_PREFIX + 'searchAssets response', response.data);
+      if (response.status === 200) {
+        imageList = response.data.assets.items;
+      } else {
+        Log.error(LOG_PREFIX + 'Unexpected response from Immich while searching assets', response.status, response.statusText);
+      }
+    } catch(e) {
+      Log.error(LOG_PREFIX + 'Oops!  Exception while fetching images from Immich (search)', e.message);
+    }
+
+    return imageList;
+  },
+
+  searchAssetsByMetadata: async function (query, size = 1000) {
+    let imageList = [];
+
+    // Log.debug(LOG_PREFIX + 'Searching for images: ', query, 'SIZE: ', size);
+    try{
+      const searchQuery = {...query, size: size};
+      Log.debug(LOG_PREFIX + 'Searching query: ', searchQuery);
+      const response = await this.http.post(this.apiUrls[this.apiLevel]['metadataSearch'], searchQuery, {responseType: 'json'});
       Log.debug(LOG_PREFIX + 'searchAssets response', response.data);
       if (response.status === 200) {
         imageList = response.data.assets.items;
