@@ -26,7 +26,7 @@ Module.register('MMM-ImmichSlideShow', {
 
   defaultConfig: {
     name: 'recents',
-    // Mode of operation: 
+    // Mode of operation:
     //    memory = show recent photos.  requires numDaystoInclude
     //    album = show picture from album.  requires albumIds/albumNames
     //    search = search for photos based on a query.  requires query
@@ -51,7 +51,7 @@ Module.register('MMM-ImmichSlideShow', {
     querySize: 100,
     // Number of days to look back before the current date
     anniversaryDatesBack: 3,
-    // Number of days to look forward after the current date  
+    // Number of days to look forward after the current date
     anniversaryDatesForward: 3,
     // Starting year for anniversary search
     anniversaryStartYear: 2020,
@@ -148,7 +148,7 @@ Module.register('MMM-ImmichSlideShow', {
 
     Log.debug(LOG_PREFIX + 'current config', this.config);
     Log.debug(LOG_PREFIX + 'immichConfigs', this.config.immichConfigs);
-    
+
     // Make sure we have at least one immich config
     if (this.config.immichUrl || this.config.apiKey) {
       // This is the old config so try and creat a default config using the old values
@@ -193,7 +193,7 @@ Module.register('MMM-ImmichSlideShow', {
       this.config.immichConfigs[0] = {...this.defaultConfig,...this.config.immichConfigs[0]};
     }
 
-    // Now loop through and make sure that all configs have all properties by copying from the 
+    // Now loop through and make sure that all configs have all properties by copying from the
     // first config and overriding with the new config
     this.config.immichConfigs.forEach((element,idx) => {
       // If the entry does not have a dateFormat specified, set it to default
@@ -304,7 +304,7 @@ Module.register('MMM-ImmichSlideShow', {
           LOG_PREFIX + 'config ' + idx + ': memory mode not set to valid value, assuming memory mode...'
         );
       }
-      
+
       // ensure image order is in lower case
       this.config.immichConfigs[idx].sortImagesBy = this.config.immichConfigs[idx].sortImagesBy.toLowerCase();
       // Make sure to process imageInfo for all entries
@@ -322,7 +322,6 @@ Module.register('MMM-ImmichSlideShow', {
     }
     this.config.activeImmichConfig = this.config.immichConfigs[this.config.activeImmichConfigIndex < this.config.immichConfigs.length ? this.config.activeImmichConfigIndex : 0];
 
-    
     if (this.data.position.indexOf('fullscreen') !== -1 && (this.config.width || this.config.height)) {
       Log.warn(
           LOG_PREFIX + 'Display is set to fullscreen and width/height provided.  Ignoring width/height...'
@@ -415,7 +414,7 @@ Module.register('MMM-ImmichSlideShow', {
         module: this.name,
         path: this.name.substring(4).toLowerCase(),
         actions: actions
-      }); 
+      });
     //  } else if (notification === 'IMMICHSLIDESHOW_UPDATE_IMAGE_LIST') {
     //   this.suspend();
     //   this.updateImageList();
@@ -440,7 +439,7 @@ Module.register('MMM-ImmichSlideShow', {
       // Restart timer only if timer was already running
       this.resume();
     } else if (notification === 'IMMICHSLIDESHOW_RESUME') {
-     this.resume();
+      this.resume();
     } else if (notification === 'IMMICHSLIDESHOW_PAUSE') {
       this.suspend();
     } else if (notification === 'IMMICHSLIDESHOW_SET_ACTIVE_CONFIG') {
@@ -497,7 +496,7 @@ Module.register('MMM-ImmichSlideShow', {
       } else {
         Log.warn(LOG_PREFIX + 'received an unexpected module notification: ' + notification);
       }
-    }    
+    }
   },
 
   createDiv: function () {
@@ -575,7 +574,7 @@ Module.register('MMM-ImmichSlideShow', {
 
       const imageDiv = this.createDiv();
       imageDiv.style.backgroundImage = `url("${image.src}")`;
-      
+
       if (this.config.showProgressBar) {
         // Restart css animation
         const oldDiv = document.getElementsByClassName('progress-inner')[0];
@@ -632,7 +631,6 @@ Module.register('MMM-ImmichSlideShow', {
         }
       }
 
-      
       if (this.config.showImageInfo) {
         let dateTime = 'N/A';
         if (imageInfo.exifInfo) {
@@ -658,7 +656,7 @@ Module.register('MMM-ImmichSlideShow', {
         const exifOrientation = imageInfo.exifInfo.orientation;
         imageDiv.style.transform = this.getImageTransformCss(exifOrientation);
       }
-     
+
       transitionDiv.appendChild(imageDiv);
       this.imagesDiv.appendChild(transitionDiv);
     };
@@ -814,23 +812,23 @@ Module.register('MMM-ImmichSlideShow', {
         case 'exif': // show EXIF technical data
           if (imageinfo.exifInfo) {
             let exifData = [];
-            
+
             // Aperture (f-stop)
             const aperture = this.formatAperture(imageinfo.exifInfo.fNumber);
             if (aperture) exifData.push(aperture);
-            
+
             // Exposition time
             const exposureTime = this.formatExposureTime(imageinfo.exifInfo.exposureTime);
             if (exposureTime) exifData.push(exposureTime);
-            
+
             // Focal lenght
             const focalLength = this.formatFocalLength(imageinfo.exifInfo.focalLength);
             if (focalLength) exifData.push(focalLength);
-            
+
             // ISO
             const iso = this.formatISO(imageinfo.exifInfo.iso);
             if (iso) exifData.push(iso);
-            
+
             if (exifData.length > 0) {
               imageProps.push(exifData.join(' • '));
             }
@@ -847,8 +845,8 @@ Module.register('MMM-ImmichSlideShow', {
               // Person name must be greater than 1 since at min it would be set to ?
               // Only add people name if it is set or we are not skipping
               if ((prop=='people' || (prop=='people_skip' && personName.length > 1))) {
-                 // Add a comma between the people's names if not the first
-                 if (peopleName.length > 0 && idx > 0 ) {
+                // Add a comma between the people's names if not the first
+                if (peopleName.length > 0 && idx > 0 ) {
                   peopleName += ', ';
                 }
                 peopleName += personName;
@@ -857,7 +855,7 @@ Module.register('MMM-ImmichSlideShow', {
               if (people.birthDate && this.config.activeImmichConfig.imageInfo.includes('age')) {
                 peopleName += `(${this.getAgeFromDate(people.birthDate, imageDate)})`
               }
-              
+
             })
             // Remove file extension from image name.
             if (peopleName.length > 0) {
@@ -952,7 +950,7 @@ Module.register('MMM-ImmichSlideShow', {
     } else {
       Log.debug(LOG_PREFIX + 'bad parameter passed to setActiveConfig:', configIndex);
     }
-    
+
   },
 
   getAgeFromDate: function (dateString, imageDate) {
@@ -973,12 +971,12 @@ Module.register('MMM-ImmichSlideShow', {
     return age;
   },
 
-   /**
-   * This funciton checks the value of imageInfo and process it to convert it
-   * to an array
-   * @param {array/string} imageInfo 
-   * @returns 
-   */
+  /**
+  * This funciton checks the value of imageInfo and process it to convert it
+  * to an array
+  * @param {array/string} imageInfo
+  * @returns
+  */
   fixImageInfo: function(imageInfo, index) {
     //validate imageinfo property.  This will make sure we have at least 1 valid value
     // AGGIORNATA: Aggiunto 'exif' alla lista dei valori validi
@@ -986,7 +984,7 @@ Module.register('MMM-ImmichSlideShow', {
     const imageInfoRegex = new RegExp(imageInfoValues,'gi');
     // Set the log prefix
     const prefix = LOG_PREFIX + `config[${index}]: `;
-        
+
     let setToDefault = false;
     let newImageInfo = [];
     if (

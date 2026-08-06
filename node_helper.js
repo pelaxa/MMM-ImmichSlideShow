@@ -21,7 +21,7 @@ const LOG_PREFIX = 'MMM-ImmichSlideShow :: node_helper :: ';
 
 // the main module helper create
 module.exports = NodeHelper.create({
-  
+
   // Min version of MM2 required
   requiresVersion: "2.1.0",
 
@@ -143,7 +143,7 @@ module.exports = NodeHelper.create({
       Log.warn(LOG_PREFIX + 'Immich is not available or failed to get version.  Returninging without the image list');
       return;
     }
-    
+
     // create an empty main image list
     this.imageList = [];
 
@@ -229,10 +229,10 @@ module.exports = NodeHelper.create({
 
   displayImage: async function(showCurrent = false) {
     Log.debug(LOG_PREFIX + 'displayImage called. Show current?', showCurrent, this.lastImageLoaded ? 'last image is in memory' : 'last image is not in memory');
-    
+
     // If we are not showing the current image, then fetch the next one.
     if (!(showCurrent && this.lastImageLoaded)) {
-      
+
       // if there are no images or all the images have been displayed or it is the next day, try loading the images again
       if (!this.imageList.length || this.index >= this.imageList.length || Date.now() - this.pictureDate > 86400000) {
         Log.debug(LOG_PREFIX + 'image list is empty or index out of range or list too old!  fetching new image list...');
@@ -261,7 +261,7 @@ module.exports = NodeHelper.create({
       let image = this.imageList[this.index];
 
       Log.debug(LOG_PREFIX + 'reading image "' + image.originalPath + '"');
-      
+
       this.lastImageLoaded = {
         identifier: this.config.identifier,
         path: image.originalPath,
@@ -276,7 +276,7 @@ module.exports = NodeHelper.create({
 
       // If there is no exif info available, or if we need people but no people are listed
       // then fetch it with a separate call based on the API version
-      if (!image.exifInfo || image.exifInfo.length == 0 || 
+      if (!image.exifInfo || image.exifInfo.length == 0 ||
         (this.config.activeImmichConfig.imageInfo.includes('people') || this.config.activeImmichConfig.imageInfo.includes('people_skip')) && (!image.people || image.people.length == 0)) {
         const assetInfo = await immichApi.getAssetInfo(image.id);
         if (assetInfo) {
@@ -299,7 +299,7 @@ module.exports = NodeHelper.create({
 
   getNextImage: function (showCurrent = false, reloadOnLoop = false) {
     Log.debug(LOG_PREFIX + 'Current Image: ', this.index+1, ' of ', this.imageList.length, '. Getting next image...', showCurrent, reloadOnLoop);
-    
+
     if (!showCurrent) {
       this.index++;
       // reloadOnLoop is only set when the pictures progress naturally, not when
@@ -311,27 +311,27 @@ module.exports = NodeHelper.create({
           Log.debug(LOG_PREFIX + 'Resetting image index(getNextImage)...' + this.index+ '/' + this.imageList.length);
           this.index = 0;
         }
-        
+
         // Check if cyclic configs is enabled and we have more than one config
         if (reloadOnLoop && this.config.cyclicConfigs === true && this.config.immichConfigs.length > 1) {
           Log.debug(LOG_PREFIX + 'Cycling to next config');
-          
+
           // Increment the active config index, with wrapping
           let nextConfigIndex = (this.config.activeImmichConfigIndex + 1) % this.config.immichConfigs.length;
-          
+
           // Update the config
           this.config.activeImmichConfigIndex = nextConfigIndex;
           this.config.activeImmichConfig = this.config.immichConfigs[nextConfigIndex];
-          
+
           // Reset index to start from the beginning of the next album
           this.index = 0;
-          
+
           // Notify the frontend module that we've cycled to a new config
           this.sendSocketNotification('IMMICHSLIDESHOW_CONFIG_CHANGED', {
             identifier: this.config.identifier,
             configIndex: nextConfigIndex
           });
-          
+
           // Change active config and load new images
           this.changeActiveConfig(this.config);
           return;
@@ -405,7 +405,7 @@ module.exports = NodeHelper.create({
     Log.debug(LOG_PREFIX + 'socketNotificationReceived:', notification); //, payload);
     if (notification === 'IMMICHSLIDESHOW_REGISTER_CONFIG') {
       const isActiveConfigChange = !!this.config && this.config.activeImmichConfigIndex !== payload.activeImmichConfigIndex;
-      
+
       if (!this.config || isActiveConfigChange) { // Only initialize if we have not initialized already
         // Log.debug(LOG_PREFIX + 'Initializing config...');
         this.suspend();
