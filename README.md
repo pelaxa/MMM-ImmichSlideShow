@@ -479,6 +479,16 @@ The following properties can be configured:
         <br>This value is <b>OPTIONAL</b>
       </td>
     </tr>
+    <tr>
+      <td><code>maxImages</code></td>
+      <td>Number value, limits the number of images after the list has been fetched from Immich.<br>
+        This mostly is intended for showing a selection of images in a random order from a shared album (while the Immich API does not return the images of other users in shared albums, see [#62](https://github.com/pelaxa/MMM-ImmichSlideShow/issues/62)).<br>
+        Deactivated when value `0` or less is set.
+        <br><b>Example:</b> <code>25</code>
+        <br><b>Default value:</b> <code>0</code>
+        <br>This value is <b>OPTIONAL</b>
+      </td>
+    </tr>
   </tbody>
 </table>
 

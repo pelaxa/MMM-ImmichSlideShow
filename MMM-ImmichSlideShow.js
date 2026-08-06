@@ -70,7 +70,9 @@ Module.register('MMM-ImmichSlideShow', {
     // whether to cycle through configs after reaching the last image
     cyclicConfigs: false,
     // Whether to show a new image any time the module is resumed
-    changeImageOnResume: false
+    changeImageOnResume: false,
+    // limit the number of images selected - a non-positive number does not truncate at all
+    maxImages: 0,
   },
 
   // Default module config.

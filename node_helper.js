@@ -206,6 +206,13 @@ module.exports = NodeHelper.create({
       this.imageList = this.sortImageList(this.imageList, config.activeImmichConfig.sortImagesBy, config.activeImmichConfig.sortImagesDescending);
 
       Log.debug(LOG_PREFIX + this.imageList.length + ' images found');
+
+      // truncate the imageList to the amount specified in the config
+      if (config.activeImmichConfig.maxImages > 0 && this.imageList.length > config.activeImmichConfig.maxImages){
+        this.imageList.length = config.activeImmichConfig.maxImages
+        Log.debug(LOG_PREFIX + this.imageList.length + ' images selected');
+      }
+
       if (this.index < 0 || this.index >= this.imageList.length) {
         //Set this index back to zero only if necessary
         Log.debug(LOG_PREFIX + 'index is out of bounds, setting to zero (gatherImageList)...' + this.index+ '/' + this.imageList.length)
