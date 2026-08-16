@@ -231,6 +231,7 @@ const immichApi = {
           imageList = await this.searchAssetsByMetadata({
             type: "IMAGE",
             query: "*",
+            visibility: "timeline",
             albumIds: [albumId]
           });
         } else {
