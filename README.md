@@ -1,3 +1,40 @@
+# v2.2.0 Breaking change coming with Immich 3.3+
+This only affects you if you are providing query as a config parameter to this module. Version 2.2.0 has been updated to use the new search API available in Immich v3.2.0, but only starting from Immich v3.3.0+.  
+once Immich 3.3 is out, the query parameter must match the new API and not use any of the deprecated fields.  Keep in mind that the query parameter for this module is meant to capture the payload for the search API so it does not map to the query parameter in the search API only.  An example is listed below:
+
+If your search query was: 
+```
+query: { 
+  "query": "scenery",
+  "withExif": true,
+  "withPeople": true, 
+  "visibility": "timeline" 
+}
+```
+Starting with Immich 3.3+, it should look like:
+```
+query: {
+    "query": "scenery",
+    "filter": {
+        "type": {
+            "eq": "IMAGE"
+        },
+        "visibility": {
+            "eq": "timeline"
+        },
+        "trashedAt": {
+            "eq": null
+        }
+    }
+  },
+  "withExif": true,
+  "withPeople": true
+}
+```
+Notes:
+- `trashedAt` is also provided here to make sure images in your trash are not part of the searchResults. See [Immich issue #31511](https://github.com/immich-app/immich/issues/31511).  Add `withExif` and `withPeople` to bring back that data as well if you show any of that in the info section.
+- Immich devs have not indicated when the old search API will be deprecated, but since it is already implemented here, I wanted to provide sometime for MMM-ImmichSlideShow users to update the searches before the switch happens.
+
 # Module: Immich Slide Show
 
 A  MagicMirror module based on [MMM-BackgroundSlideshow](https://github.com/darickc/MMM-BackgroundSlideshow) that works with [Immich](https://immich.app/).
@@ -395,14 +432,18 @@ The following properties can be configured:
       </td>
     </tr>
         <tr>
-            <td><code>query</code></td>
+            <td><code>query</code><br>(Advanced)</td>
             <td>
-                The query object used to search for images in <i>search</i>, <i>random</i>, and <i>anniversary</i> mode. This is an advanced feature and the expected value here is meant to be a JSON matching what Immich currently supports.<br>
+                The query object used to search for images in <i>search</i>, <i>random</i>, and <i>anniversary</i> mode. This is an advanced feature and the expected value here is meant to be a JSON matching what Immich currently supports as search payload.<br>
                 <br><b>For search mode:</b> The query parameter contains search criteria like text queries, location filters, etc. Refer to: <a target="immich_api" href="https://api.immich.app/endpoints/search/searchSmart">Immich Smart Search</a> for more detail<br>
-                    <b>Example:</b> <code>{ "query": "animals", "city": "Montreal" }</code><br>
+                    <b>Example:</b> <code>{ "query": "animals", "filter": { "city": "Montreal", "type": {
+            "eq": "IMAGE" }, "visibility": { "eq": "timeline" }, "trashedAt": { "eq": null }} }</code><br>
                     <code>query</code> is <b>REQUIRED</b> if <i>mode</i> is set to <i>search</i>.<br>
                 <br><b>For random and anniversary mode:</b> The query parameter can include filters like albumIds, personIds, favorites, etc. Refer to <a target="immich_api" href="https://api.immich.app/endpoints/search/searchRandom">Immich Random Search</a> for more detail.<br>
-                    <b>Example:</b> <code>{ "isFavorite": true, "visibility": "timeline" }</code><br>
+                    <b>Example:</b> <code>{ "filter": {"isFavorite": true, "type": {
+            "eq": "IMAGE" }, "visibility": { "eq": "timeline" }, "trashedAt": { "eq": null }} }</code><br>
+                <br>
+                <b>Note</b>: For v2.2.0+, see breaking changes note above.  Make sure to refer to latest <a href="https://api.immich.app/endpoints/search">Immich Search API</a>.
             </td>
         </tr>
     <tr>

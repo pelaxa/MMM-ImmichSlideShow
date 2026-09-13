@@ -68,6 +68,7 @@ const immichApi = {
     }
   },
 
+  serverVersion: { major: -1, minor: -1, patch: -1, prerelease: null },
   apiLevel: 'v3_0',
   apiBaseUrl: '/api',
   http: null,
@@ -101,7 +102,7 @@ const immichApi = {
 
       // Now get the version of the server
       //determine the server version first
-      let serverVersion = {major:-1, minor:-1, patch:-1};
+      let serverVersion = this.serverVersion;
       try {
         Log.debug(LOG_PREFIX + 'fetching server version...');
         let response = await this.http.get(this.apiUrls[this.apiLevel]['serverInfoUrl'], {params: {}, responseType: 'json'});
@@ -128,6 +129,7 @@ const immichApi = {
       }
 
       Log.info(LOG_PREFIX + 'Immich server version: ', serverVersion);
+      this.serverVersion = serverVersion;
 
       if (serverVersion.major > -1) {
         if (serverVersion.major === 1) {
@@ -226,14 +228,39 @@ const immichApi = {
         if (!!response.data.assets) {
           imageList = [...response.data.assets];
         } else if (this.apiUrls[this.apiLevel].version >= 3) {
-          // For immich v3+, the easiest way to fetch album assets is to use the search function
-          // Why the devs decided to make this harder is beyond me, but the API now is more geared towards the UI rather than being a useful API
-          imageList = await this.searchAssetsByMetadata({
+          let searchQuery = {
             type: "IMAGE",
             query: "*",
             visibility: "timeline",
             albumIds: [albumId]
-          });
+          };
+          // Check the version of Immich since V3.2.0 introduced new Search APIs.  For versions > 3.2, the new API is used.
+          Log.warn("Immich Server Version: ", this.serverVersion);
+          if (this.serverVersion.major > 3 || (this.serverVersion.major = 3 && this.serverVersion.minor > 2) ) {
+            Log.warn("Using new search...");
+            searchQuery = {
+              "filter": {
+                "type": {
+                  "eq": "IMAGE"
+                },
+                "visibility": {
+                  "eq": "timeline"
+                },
+                "albumIds": {
+                  "any": [albumId]
+                },
+                "trashedAt": {
+                    "eq": null
+                }
+              },
+              "size": 500,
+              "withExif": true,
+              "withPeople": true
+            };
+          } 
+          // For immich v3+, the easiest way to fetch album assets is to use the search function
+          // Why the devs decided to make this harder is beyond me, but the API now is more geared towards the UI rather than being a useful API
+          imageList = await this.searchAssetsByMetadata(searchQuery);
         } else {
           Log.error(LOG_PREFIX + 'Oops!  Albums assets are not available due to unexpected API response.  An updated version of this module may be needed to address the issue.');
         }
@@ -256,6 +283,7 @@ const immichApi = {
   getAlbumAssetsForAlbumIds: async function (albumIds) {
     let imageList = [];
 
+    // Have to get one album at a time so we know which pictures belong to which album
     for (const albumId of albumIds) {
       let currentAlbumImages = await this.getAlbumAssets(albumId);
       if (currentAlbumImages && currentAlbumImages.length > 0) {
@@ -360,12 +388,7 @@ const immichApi = {
 
     Log.debug(LOG_PREFIX + 'Searching for random images, SIZE: ', size);
     try{
-      const searchQuery = { size: size };
-
-      // Add any additional query parameters if provided
-      if (query) {
-        Object.assign(searchQuery, query);
-      }
+      const searchQuery = {...query, size: size};
 
       Log.debug(LOG_PREFIX + 'Random search query: ', searchQuery);
       const response = await this.http.post(this.apiUrls[this.apiLevel]['randomSearch'], searchQuery, {responseType: 'json'});
@@ -426,18 +449,30 @@ const immichApi = {
 
         Log.debug(LOG_PREFIX + `Searching for year ${year}: ${startDateString} to ${endDateString}`);
 
-        const searchQuery = {};
-
-        // Add any additional query parameters if provided
-        if (query) {
-          Object.assign(searchQuery, query);
-        }
+        let searchQuery = {
+          ...query
+        };
 
         Object.assign(searchQuery, {
           size: querySize,
           takenAfter: startDateString + 'T00:00:00.000Z',
           takenBefore: endDateString + 'T23:59:59.999Z'
         });
+        
+        // Check the version of Immich since V3.2.0 introduced new Search APIs.  For versions > 3.2, the new API is used.
+        if (this.serverVersion.major > 3 || (this.serverVersion.major = 3 && this.serverVersion.minor > 2) ) {
+          searchQuery = {
+            filter: {},
+            ...query
+          };
+
+          Object.assign(searchQuery.filter, {
+            takenAt: {
+              'gte': startDateString + 'T00:00:00.000Z',
+              'lte': endDateString + 'T23:59:59.999Z'
+            }
+          });
+        }
 
         try {
           const response = await this.http.post(this.apiUrls[this.apiLevel]['randomSearch'], searchQuery, {responseType: 'json'});

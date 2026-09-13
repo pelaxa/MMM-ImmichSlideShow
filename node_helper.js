@@ -175,7 +175,7 @@ module.exports = NodeHelper.create({
     } else if (config.activeImmichConfig.mode === 'random') {
       // Random mode
       this.imageList = await immichApi.randomSearchAssets(
-        config.activeImmichConfig.query || null,
+        config.activeImmichConfig.query || {},
         config.activeImmichConfig.querySize || 100
       );
     } else if (config.activeImmichConfig.mode === 'anniversary') {
@@ -185,7 +185,7 @@ module.exports = NodeHelper.create({
         config.activeImmichConfig.anniversaryDatesForward || 3,
         config.activeImmichConfig.anniversaryStartYear || 2020,
         config.activeImmichConfig.anniversaryEndYear || 2025,
-        config.activeImmichConfig.query || null,
+        config.activeImmichConfig.query || {},
         config.activeImmichConfig.querySize || 100
       );
     } else {
