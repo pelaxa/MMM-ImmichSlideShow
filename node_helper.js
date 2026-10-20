@@ -35,6 +35,9 @@ module.exports = NodeHelper.create({
     Log.debug(LOG_PREFIX + 'initialized index to zero!', this.index);
     this.config;
     this.pictureDate = 0;
+    // Backoff for retrying when Immich is unreachable.
+    this.retryDelay = 30000;
+    this.retryTimer = null;
   },
 
   // shuffles an array at random and returns it
@@ -139,8 +142,19 @@ module.exports = NodeHelper.create({
     Log.debug(LOG_PREFIX + 'GOT new active config', this.config.activeImmichConfig);
     try {
       await immichApi.init(config.activeImmichConfig, this.expressApp, isActiveConfigChange);
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+      this.retryDelay = 30000;
     } catch (e) {
-      Log.warn(LOG_PREFIX + 'Immich is not available or failed to get version.  Returninging without the image list');
+      Log.warn(LOG_PREFIX + 'Immich is not available or failed to get version.  Retrying in ' + (this.retryDelay / 1000) + ' s');
+      clearTimeout(this.retryTimer);
+      const delay = this.retryDelay;
+      // At most one pending retry; this.config picks up a config change made meanwhile.
+      this.retryTimer = setTimeout(() => {
+        this.retryTimer = null;
+        this.gatherImageList(this.config, false);
+      }, delay);
+      this.retryDelay = Math.min(this.retryDelay * 2, 600000);
       return;
     }
 

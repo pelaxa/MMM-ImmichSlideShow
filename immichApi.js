@@ -76,6 +76,8 @@ const immichApi = {
   init: async function(config, expressApp, force) {
 
     if (this.http === null || force) {
+      // Remember the API level: the fallback walk below changes it.
+      const initialApiLevel = this.apiLevel;
       // create and axis instance
       this.http = axios.create({
         baseURL: config.url + this.apiBaseUrl,
@@ -102,7 +104,8 @@ const immichApi = {
 
       // Now get the version of the server
       //determine the server version first
-      let serverVersion = this.serverVersion;
+      // Start unknown, so a failed fetch throws even on a forced re-init.
+      let serverVersion = { major: -1, minor: -1, patch: -1, prerelease: null };
       try {
         Log.debug(LOG_PREFIX + 'fetching server version...');
         let response = await this.http.get(this.apiUrls[this.apiLevel]['serverInfoUrl'], {params: {}, responseType: 'json'});
@@ -144,6 +147,9 @@ const immichApi = {
           }
         }
       } else {
+        // Leave no half-initialised state, so the next init retries in full.
+        this.http = null;
+        this.apiLevel = initialApiLevel;
         throw('Failed to get Immich version.  Cannot proceed.');
       }
 
