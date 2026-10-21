@@ -9,53 +9,8 @@ let IS_PROXY_REGISTERED = false;
 
 const immichApi = {
   apiUrls: {
-    v1_94: {
-      version: 1.094,
-      albums: '/album',
-      albumInfo: '/album/{id}',
-      memoryLane: '/asset/memory-lane',
-      assetInfo: '/asset/{id}',
-      assetDownload: '/asset/file/{id}?isWeb=true',
-      serverInfoUrl: '/server-info/version',
-      search: 'NOT SUPPORTED'
-    },
-    v1_106: {
-      version: 1.106,
-      previousVersion: 'v1_94',
-      albums: '/albums',
-      albumInfo: '/albums/{id}',
-      memoryLane: '/assets/memory-lane',
-      assetInfo: '/assets/{id}',
-      assetDownload: '/assets/{id}/thumbnail?size=preview',
-      serverInfoUrl: '/server-info/version',
-      search: 'NOT SUPPORTED'
-    },
-    v1_118: {
-      version: 1.118,
-      previousVersion: 'v1_106',
-      albums: '/albums',
-      albumInfo: '/albums/{id}',
-      memoryLane: '/assets/memory-lane',
-      assetInfo: '/assets/{id}',
-      assetDownload: '/assets/{id}/thumbnail?size=preview',
-      serverInfoUrl: '/server/version',
-      search: '/search/smart'
-    },
-    v1_133: {
-      version: 1.133,
-      previousVersion: 'v1_118',
-      albums: '/albums',
-      albumInfo: '/albums/{id}',
-      memoryLane: '/memories',
-      assetInfo: '/assets/{id}',
-      assetDownload: '/assets/{id}/thumbnail?size=preview',
-      serverInfoUrl: '/server/version',
-      search: '/search/smart',
-      randomSearch: '/search/random'
-    },
     v3_0: {
       version: 3,
-      previousVersion: 'v1_133',
       albums: '/albums',
       albumInfo: '/albums/{id}',
       memoryLane: '/memories',
@@ -76,8 +31,6 @@ const immichApi = {
   init: async function(config, expressApp, force) {
 
     if (this.http === null || force) {
-      // Remember the API level: the fallback walk below changes it.
-      const initialApiLevel = this.apiLevel;
       // create and axis instance
       this.http = axios.create({
         baseURL: config.url + this.apiBaseUrl,
@@ -104,8 +57,7 @@ const immichApi = {
 
       // Now get the version of the server
       //determine the server version first
-      // Start unknown, so a failed fetch throws even on a forced re-init.
-      let serverVersion = { major: -1, minor: -1, patch: -1, prerelease: null };
+      let serverVersion = this.serverVersion;
       try {
         Log.debug(LOG_PREFIX + 'fetching server version...');
         let response = await this.http.get(this.apiUrls[this.apiLevel]['serverInfoUrl'], {params: {}, responseType: 'json'});
@@ -125,60 +77,50 @@ const immichApi = {
           }
           if (!serverVersionFound) {
             Log.error(LOG_PREFIX + 'unexpected response from Immich', response.status, response.statusText);
+            // Since we could not connect, reset the http client to try again later.
+            // see resyncTimeout in MMM-ImmichSlideShow.js
+            this.http = null;
           }
         }
       } catch(e) {
         Log.error(LOG_PREFIX + 'Oops!  Exception while fetching server version', e.message);
+        // Since we could not connect, reset the http client to try again later.
+        this.http = null; 
       }
 
       Log.info(LOG_PREFIX + 'Immich server version: ', serverVersion);
       this.serverVersion = serverVersion;
 
-      if (serverVersion.major > -1) {
-        if (serverVersion.major === 1) {
-          if (serverVersion.minor >= 133 ) {
-            this.apiLevel = 'v1_133';
-          } else if (serverVersion.minor >= 118 && serverVersion.minor < 133 ) {
-            this.apiLevel = 'v1_118';
-          } else if (serverVersion.minor >= 106 && serverVersion.minor < 118 ) {
-            this.apiLevel = 'v1_106';
-          } else if (serverVersion.minor < 106 ) {
-            this.apiLevel = 'v1_94';
-          }
-        }
-      } else {
-        // Leave no half-initialised state, so the next init retries in full.
-        this.http = null;
-        this.apiLevel = initialApiLevel;
+      if (serverVersion.major === -1) {
         throw('Failed to get Immich version.  Cannot proceed.');
-      }
-
-      // Only register the proxy if not already registered
-      if (!IS_PROXY_REGISTERED) {
-        Log.debug('Registering proxy for immich');
-        IS_PROXY_REGISTERED = true;
-        const self = this;
-        expressApp.use(IMMICH_PROXY_URL, createProxyMiddleware({
-          changeOrigin: true,
-          // Set the target dynamically based on current config
-          router: () => self._proxyTarget,
-          // logger: Log,
-          proxyTimeout: config.timeout,
-          headers: {
-            'accept': 'application/octet-stream'
-          },
-          on: {
-            // Set this dynamically to make sure always using the latest.
-            proxyReq: (pReq) => {
-              pReq.setHeader('x-api-key', self._proxyAPiKey);
+      } else {
+        // Only register the proxy if not already registered and we connected to Immich
+        if (!IS_PROXY_REGISTERED) {
+          Log.debug('Registering proxy for immich');
+          IS_PROXY_REGISTERED = true;
+          const self = this;
+          expressApp.use(IMMICH_PROXY_URL, createProxyMiddleware({
+            changeOrigin: true,
+            // Set the target dynamically based on current config
+            router: () => self._proxyTarget,
+            // logger: Log,
+            proxyTimeout: config.timeout,
+            headers: {
+              'accept': 'application/octet-stream'
+            },
+            on: {
+              // Set this dynamically to make sure always using the latest.
+              proxyReq: (pReq) => {
+                pReq.setHeader('x-api-key', self._proxyAPiKey);
+              }
+            },
+            pathRewrite: (path, req) => {
+              const pathArray = path.split('/');
+              const imageId = pathArray[pathArray.length-1];
+              return this.apiBaseUrl + this.apiUrls[this.apiLevel]['assetDownload'].replace('{id}',imageId);
             }
-          },
-          pathRewrite: (path, req) => {
-            const pathArray = path.split('/');
-            const imageId = pathArray[pathArray.length-1];
-            return this.apiBaseUrl + this.apiUrls[this.apiLevel]['assetDownload'].replace('{id}',imageId);
-          }
-        }));
+          }));
+        }
       }
 
       Log.debug(LOG_PREFIX + 'Server Version is ', this.apiLevel, ' or later: ', JSON.stringify(serverVersion));
@@ -242,7 +184,7 @@ const immichApi = {
           };
           // Check the version of Immich since V3.2.0 introduced new Search APIs.  For versions > 3.2, the new API is used.
           Log.warn("Immich Server Version: ", this.serverVersion);
-          if (this.serverVersion.major > 3 || (this.serverVersion.major = 3 && this.serverVersion.minor > 2) ) {
+          if (this.serverVersion.major > 3 || (this.serverVersion.major === 3 && this.serverVersion.minor > 2) ) {
             Log.warn("Using new search...");
             searchQuery = {
               "filter": {
@@ -466,7 +408,7 @@ const immichApi = {
         });
         
         // Check the version of Immich since V3.2.0 introduced new Search APIs.  For versions > 3.2, the new API is used.
-        if (this.serverVersion.major > 3 || (this.serverVersion.major = 3 && this.serverVersion.minor > 2) ) {
+        if (this.serverVersion.major > 3 || (this.serverVersion.major === 3 && this.serverVersion.minor > 2) ) {
           searchQuery = {
             filter: {},
             ...query

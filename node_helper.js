@@ -139,7 +139,7 @@ module.exports = NodeHelper.create({
       this.sendSocketNotification('IMMICHSLIDESHOW_REGISTER_CONFIG');
       return;
     }
-    Log.debug(LOG_PREFIX + 'GOT new active config', this.config.activeImmichConfig);
+    Log.debug(LOG_PREFIX + 'GOT new active config');
     try {
       await immichApi.init(config.activeImmichConfig, this.expressApp, isActiveConfigChange);
       clearTimeout(this.retryTimer);
