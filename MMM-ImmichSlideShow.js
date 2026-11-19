@@ -666,9 +666,15 @@ Module.register('MMM-ImmichSlideShow', {
     image.src = imageInfo.data;
     // Store the last image image id to avoid showing it again.
     this.lastDisplayedImageId = imageInfo.imageId;
-    this.sendNotification('IMMICHSLIDESHOW_IMAGE_UPDATED', {
-      url: imageInfo.path
-    });
+    // Other modules need the Immich asset id. The path alone cannot identify the photo.
+    const imageUpdatedPayload = {
+      url: imageInfo.path,
+      imageId: imageInfo.imageId
+    };
+    if (imageInfo.albumName) {
+      imageUpdatedPayload.albumName = imageInfo.albumName;
+    }
+    this.sendNotification('IMMICHSLIDESHOW_IMAGE_UPDATED', imageUpdatedPayload);
   },
 
   updateImage: function (backToPreviousImage = false) {

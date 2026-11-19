@@ -152,6 +152,8 @@ The following notifications can be used:
     </tr>
 </table>
 
+When the displayed photo changes, the module sends `IMMICHSLIDESHOW_IMAGE_UPDATED`. The payload is `{ url, imageId }`. `url` is the local image path. `imageId` is the Immich asset id. `albumName` is included when the current image already has one.
+
 ### Example Request for Changing Active Configuration
 This requires [MMM-Remote-Control](https://github.com/Jopyth/MMM-Remote-Control)
 ```bash
